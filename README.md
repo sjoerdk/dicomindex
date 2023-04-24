@@ -1,0 +1,30 @@
+# dicom index
+
+
+[![CI](https://github.com/sjoerdk/dicomindex/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/sjoerdk/dicomindex/actions/workflows/build.yml?query=branch%3Amaster)
+[![PyPI](https://img.shields.io/pypi/v/dicomindex)](https://pypi.org/project/dicomindex/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dicomindex)](https://pypi.org/project/dicomindex/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
+
+Reads DICOM files and indexes those in a single sqlite file. Helps answer the question 'what is in this huge folder full of dicom files?'
+
+
+## Useful for
+* Data scientists/ researchers that can write python scripts 
+* DICOM data exploration and sanitizing legacy archives
+* Messy, semi-structured data, 'archives' that are just collections of folders with DICOM files in them
+
+## Not useful for
+* People looking for long term comprehensive storage. Use a PACS
+
+## Features
+* Reads in DICOM files
+* Indexes into a sqlite database file
+
+## Installation 
+
+```
+pip install dicomindex
+```
+
