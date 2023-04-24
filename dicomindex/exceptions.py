@@ -1,0 +1,2 @@
+class DICOMIndexError(Exception):
+    pass

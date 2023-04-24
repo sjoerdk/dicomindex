@@ -15,12 +15,14 @@ Reads DICOM files and indexes those in a single sqlite file. Helps answer the qu
 * DICOM data exploration and sanitizing legacy archives
 * Messy, semi-structured data, 'archives' that are just collections of folders with DICOM files in them
 
-## Not useful for
-* People looking for long term comprehensive storage. Use a PACS
+## Non-goals
+dicomindex will not do the following:
+* Comprehensive storage. Use a PACS like [orthanc](https://www.orthanc-server.com)
+* Exploration and browsing tools. Use [datasette](https://datasette.io/) 
 
 ## Features
 * Reads in DICOM files
-* Indexes into a sqlite database file
+* Indexes into a database file (sqlite initially)
 
 ## Installation 
 
