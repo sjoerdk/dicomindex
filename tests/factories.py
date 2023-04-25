@@ -1,8 +1,13 @@
 import uuid
 from pathlib import Path
 
+import factory
+import pytest
 from dicomgenerator.export import export
+from dicomgenerator.generators import DICOMVRProvider
 from dicomgenerator.templates import CTDatasetFactory
+
+from dicomindex.orm import Instance, Series
 
 
 def generate_dicom_structure(structure, output_dir):
@@ -38,4 +43,26 @@ def generate_dicom_structure(structure, output_dir):
                                                     SeriesInstanceUID=series),
                            path=output_dir_full / str(
                                uuid.uuid4()))
+
+
+# used to generate DICOM uids and dates
+factory.Faker.add_provider(DICOMVRProvider)
+
+
+class SeriesFactory(factory.Factory):
+    class Meta:
+        model = Series
+
+    SeriesInstanceUID = factory.Faker("dicom_ui")
+
+
+class InstanceFactory(factory.Factory):
+    class Meta:
+        model = Instance
+
+    SOPInstanceUID = factory.Faker("dicom_ui")
+    SeriesInstanceUID = factory.SubFactory(SeriesFactory)
+    path = factory.Sequence(lambda n: f"/tmp/some/path/file{n}")
+
+
 

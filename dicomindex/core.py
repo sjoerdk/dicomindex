@@ -42,7 +42,6 @@ def index_dicom_dir(dicom_dir: Path):
 
     """
     files = []
-    structure = defaultdict(defaultdict(defaultdict(list)))
     for file in (x for x in dicom_dir.rglob('*') if x.is_file()):
         files.append(file)
         content = read_dicom_file(file)
