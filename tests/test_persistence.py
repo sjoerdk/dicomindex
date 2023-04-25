@@ -1,10 +1,13 @@
 from pathlib import Path
+from random import randint
 
 import pytest
 
-from dicomindex.orm import Patient, Study
+from dicomindex.orm import Instance, Patient, Series, Study
 from dicomindex.persistence import SQLiteSession, get_session
-from tests.factories import InstanceFactory, SeriesFactory
+from tests.conftest import set_factory_db_session
+from tests.factories import InstanceFactory, PatientFactory, SeriesFactory, \
+    StudyFactory
 
 
 @pytest.fixture
@@ -29,7 +32,24 @@ def test_write_db(a_db_file):
         assert patients[0].studies[0].StudyInstanceUID == '1111.1'
 
 
-def test_write_large_db(a_db_file):
-    instance = InstanceFactory()
-    series = SeriesFactory()
+def generate_full_stack_patient(patient_id: str):
+    """Create a patient containing one or two studies, which contain
+    two or three series each, which contain 2 instances each
 
+    Notes
+    -----
+    Must be called from a db-enabled test which calls
+    `tests.conftest.set_factory_db_session()` somewhere to make Factory
+    instances write to the db session
+    """
+
+    patient = PatientFactory(PatientID=patient_id)
+    studies = [StudyFactory(PatientID=patient.PatientID) for _ in range(randint(1, 4))]
+    for study in studies:
+        seriess = [SeriesFactory(StudyInstanceUID=study.StudyInstanceUID)
+                    for _ in range(randint(1, 8))]
+        for series in seriess:
+            [InstanceFactory(SeriesInstanceUID=series.SeriesInstanceUID)
+             for _ in range(randint(1, 10))]
+
+    return patient

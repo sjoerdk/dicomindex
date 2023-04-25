@@ -1,9 +1,8 @@
-from select import select
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from dicomindex.orm import Base, Patient, Series, Study
+from dicomindex.orm import Base, Patient, Study
 
 
 def test_orm():
@@ -17,7 +16,6 @@ def test_orm():
         ])
         session.add_all([patient1])
         session.commit()
-        test = 1
 
-        studies = session.query(Patient).all()
-        test = 1
+        studies = session.query(Study).all()
+        assert len(studies) == 2

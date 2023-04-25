@@ -2,12 +2,11 @@ import uuid
 from pathlib import Path
 
 import factory
-import pytest
 from dicomgenerator.export import export
 from dicomgenerator.generators import DICOMVRProvider
 from dicomgenerator.templates import CTDatasetFactory
 
-from dicomindex.orm import Instance, Series
+from dicomindex.orm import Instance, Patient, Series, Study
 
 
 def generate_dicom_structure(structure, output_dir):
@@ -49,16 +48,36 @@ def generate_dicom_structure(structure, output_dir):
 factory.Faker.add_provider(DICOMVRProvider)
 
 
-class SeriesFactory(factory.Factory):
+class PatientFactory(factory.alchemy.SQLAlchemyModelFactory):
+    class Meta:
+        model = Patient
+        sqlalchemy_session_persistence = "commit"
+
+    PatientID = factory.Sequence(lambda n: f"Patient{n}")
+
+
+class StudyFactory(factory.alchemy.SQLAlchemyModelFactory):
+    class Meta:
+        model = Study
+        sqlalchemy_session_persistence = "commit"
+
+    StudyInstanceUID = factory.Faker("dicom_ui")
+    PatientID = factory.SubFactory(PatientFactory)
+
+
+class SeriesFactory(factory.alchemy.SQLAlchemyModelFactory):
     class Meta:
         model = Series
+        sqlalchemy_session_persistence = "commit"
 
     SeriesInstanceUID = factory.Faker("dicom_ui")
+    StudyInstanceUID = factory.SubFactory(StudyFactory)
 
 
-class InstanceFactory(factory.Factory):
+class InstanceFactory(factory.alchemy.SQLAlchemyModelFactory):
     class Meta:
         model = Instance
+        sqlalchemy_session_persistence = "commit"
 
     SOPInstanceUID = factory.Faker("dicom_ui")
     SeriesInstanceUID = factory.SubFactory(SeriesFactory)

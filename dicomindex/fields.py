@@ -20,7 +20,6 @@ class InstanceLevel:
         "PresentationCreationDate",
         "PresentationCreationTime",
         "ContentCreatorName",
-        "RetrieveURI",
         "TransferSyntaxUID",
         "InstanceNumber",
         "Manufacturer",
