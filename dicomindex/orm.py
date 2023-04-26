@@ -1,7 +1,11 @@
 from typing import List, Optional
 
+from pydicom import Dataset
 from sqlalchemy import Float, ForeignKey, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+from dicomindex.fields import InstanceLevel, SeriesLevel, StudyLevel
+from dicomindex.types import DICOMName, DICOMSequence
 
 
 class Base(DeclarativeBase):
@@ -13,6 +17,12 @@ class Patient(Base):
     PatientID: Mapped[str] = mapped_column(primary_key=True)
     studies: Mapped[List["Study"]] = relationship(
     back_populates = "patient", cascade = "all, delete-orphan")
+
+    @classmethod
+    def init_from_dataset(cls, dataset: Dataset):
+        """Try to fill all fields of this model with info from dataset"""
+        return cls(PatientID=dataset.PatientID)
+
 
 
 class Study(Base):
@@ -32,13 +42,13 @@ class Study(Base):
     IssuerOfPatientIDQualifiersSequence: Mapped[Optional[str]] = mapped_column(
         String(265))
     NumberOfStudyRelatedInstances: Mapped[Optional[str]] = mapped_column(String(12))
-    OtherPatientIDsSequence: Mapped[Optional[str]] = mapped_column(String(265))
-    PatientName: Mapped[Optional[str]] = mapped_column(String(192))
+    OtherPatientIDsSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
+    PatientName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
     PatientSex: Mapped[Optional[str]] = mapped_column(String(16))
     CurrentPatientLocation: Mapped[Optional[str]] = mapped_column(String(64))
-    ProcedureCodeSequence: Mapped[Optional[str]] = mapped_column(String(265))
+    ProcedureCodeSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
     IssuerOfPatientID: Mapped[Optional[str]] = mapped_column(String(64))
-    ReferringPhysicianName: Mapped[Optional[str]] = mapped_column(String(192))
+    ReferringPhysicianName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
     NumberOfStudyRelatedSeries: Mapped[Optional[str]] = mapped_column(String(12))
     StudyDate: Mapped[Optional[str]] = mapped_column(String(8))
     InstanceAvailability: Mapped[Optional[str]] = mapped_column(String(16))
@@ -55,6 +65,13 @@ class Study(Base):
         String(265))
     ModalitiesInStudy: Mapped[Optional[str]] = mapped_column(String(16))
     InstitutionName: Mapped[Optional[str]] = mapped_column(String(64))
+
+    @classmethod
+    def init_from_dataset(cls, dataset: Dataset):
+        """Try to fill all fields of this model with info from dataset"""
+        fields_to_transfer = StudyLevel.fields.union({'PatientID'})
+        return cls(**{tag: dataset.get(tag) for tag in fields_to_transfer})
+
 
 
 class Series(Base):
@@ -73,7 +90,7 @@ class Series(Base):
     SmallestPixelValueInSeries: Mapped[Optional[float]] = mapped_column(Float(4))
     SpatialResolution: Mapped[Optional[str]] = mapped_column(String(32))
     PerformedProcedureStepStartDate: Mapped[Optional[str]] = mapped_column(String(8))
-    PerformingPhysicianName: Mapped[Optional[str]] = mapped_column(String(192))
+    PerformingPhysicianName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
     ProtocolName: Mapped[Optional[str]] = mapped_column(String(64))
     SeriesNumber: Mapped[Optional[str]] = mapped_column(String(12))
     SeriesDate: Mapped[Optional[str]] = mapped_column(String(8))
@@ -81,13 +98,19 @@ class Series(Base):
     BodyPartExamined: Mapped[Optional[str]] = mapped_column(String(16))
     PerformedProcedureStepStatus: Mapped[Optional[str]] = mapped_column(String(16))
     SeriesType: Mapped[Optional[str]] = mapped_column(String(16))
-    OperatorsName: Mapped[Optional[str]] = mapped_column(String(192))
+    OperatorsName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
     PerformedProcedureStepStartTime: Mapped[Optional[str]] = mapped_column(String(16))
     SeriesDescription: Mapped[Optional[str]] = mapped_column(String(64))
-    AnatomicRegionSequence: Mapped[Optional[str]] = mapped_column(String(265))
+    AnatomicRegionSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
     PerformedProcedureStepDescription: Mapped[Optional[str]] = mapped_column(
         String(64))
     Laterality: Mapped[Optional[str]] = mapped_column(String(16))
+
+    @classmethod
+    def init_from_dataset(cls, dataset: Dataset):
+        """Try to fill all fields of this model with info from dataset"""
+        fields_to_transfer = SeriesLevel.fields.union({'StudyInstanceUID'})
+        return cls(**{tag: dataset.get(tag) for tag in fields_to_transfer})
 
 
 class Instance(Base):
@@ -112,7 +135,7 @@ class Instance(Base):
     ContentDate: Mapped[Optional[str]] = mapped_column(String(8))
     BitsAllocated: Mapped[Optional[float]] = mapped_column(Float(4))
     TransferSyntaxUID: Mapped[Optional[str]] = mapped_column(String(128))
-    ConceptNameCodeSequence: Mapped[Optional[str]] = mapped_column(String(265))
+    ConceptNameCodeSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
     Columns: Mapped[Optional[float]] = mapped_column(Float(4))
     CorrectedImage: Mapped[Optional[str]] = mapped_column(String(16))
     InstanceNumber: Mapped[Optional[str]] = mapped_column(String(12))
@@ -120,9 +143,19 @@ class Instance(Base):
     TimeOfLastCalibration: Mapped[Optional[str]] = mapped_column(String(16))
     ContentDescription: Mapped[Optional[str]] = mapped_column(String(64))
     Rows: Mapped[Optional[float]] = mapped_column(Float(4))
-    ContentCreatorName: Mapped[Optional[str]] = mapped_column(String(192))
+    ContentCreatorName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
     DeviceSerialNumber: Mapped[Optional[str]] = mapped_column(String(64))
     Manufacturer: Mapped[Optional[str]] = mapped_column(String(64))
     PixelPaddingValue: Mapped[Optional[float]] = mapped_column(Float(4))
     PresentationCreationTime: Mapped[Optional[str]] = mapped_column(String(16))
     StationName: Mapped[Optional[str]] = mapped_column(String(16))
+
+    @classmethod
+    def init_from_dataset(cls, dataset: Dataset, path: str):
+        """Try to fill all fields of this model with info from dataset"""
+        fields_to_transfer = InstanceLevel.fields.union({'SeriesInstanceUID'})
+        param_dict = {tag: dataset.get(tag) for tag in fields_to_transfer}
+        param_dict['path'] = path
+        return cls(**param_dict)
+
+

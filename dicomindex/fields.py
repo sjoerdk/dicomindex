@@ -1,4 +1,10 @@
-"""DICOM fields that belong to Study, Series and Instance levels"""
+"""DICOM fields that belong to Study, Series and Instance levels
+
+Notes
+-----
+The classes below determine which DICOM tags get saved for which db objects.
+Changing the fields below will require in the classes in dicomindex.orm
+"""
 
 
 class InstanceLevel:
@@ -138,3 +144,5 @@ class StudyLevel:
         "CurrentPatientLocation",
         "SourceApplicationEntityTitle",
     }
+
+

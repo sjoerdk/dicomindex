@@ -8,10 +8,9 @@ from pydicom.tag import Tag
 from dicomindex.fields import InstanceLevel, SeriesLevel, StudyLevel
 
 
-def tag_to_sqlalchemy(tag_name: str):
-    """Given a DICOM element tag like 'PatientID', Give python code that will
-    create a SQLAlchemy model field to hold that element's value
-
+def tag_to_vr(tag_name):
+    """Go from tag name like 'PatientID' to its Value Representation (VR).
+    VR is a DICOM term to indicate Data type (long, int, bytes, etc.)
     """
     vr_name = get_vr(tag_name)
     if " or " in vr_name:
@@ -22,6 +21,15 @@ def tag_to_sqlalchemy(tag_name: str):
         vr = VRs.short_name_to_vr(vr_name)
     except ValueError as e:
         raise ValueError(f'Error getting vr for {tag_name}: {e}')
+    return vr
+
+
+def tag_to_sqlalchemy(tag_name: str):
+    """Given a DICOM element tag like 'PatientID', Give python code that will
+    create a SQLAlchemy model field to hold that element's value
+
+    """
+    vr = tag_to_vr(tag_name)
 
     if vr == VRs.ApplicationEntity:
         return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(16))"
@@ -56,13 +64,13 @@ def tag_to_sqlalchemy(tag_name: str):
     elif vr == VRs.OtherWordString:
         raise ValueError(f'I dont want to put this {tag_name} into a db. Sorry')
     elif vr == VRs.PersonName:
-        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(192))"
+        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(DICOMName(192))"
     elif vr == VRs.ShortString:
         return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(16))"
     elif vr == VRs.SignedLong:
         return f"{tag_name}: Mapped[Optional[float]] = mapped_column(Float(8))"
     elif vr == VRs.Sequence:
-        # read and write sequences as flat text. Worry later
+        # pre-processed in orm.prepare_field_values(). see notes there
         return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(265))"
     elif vr == VRs.SignedShort:
         return f"{tag_name}: Mapped[Optional[float]] = mapped_column(Float(4))"
@@ -118,6 +126,13 @@ def get_vr(tag_name):
 
 
 if __name__ == '__main__':
-    #generate_study_fields()
-    #generate_series_fields()
+    print('==== STUDY =====')
+    print('')
+    generate_study_fields()
+    print('==== Series =====')
+    print('')
+    generate_series_fields()
+    print('==== Instance =====')
+    print('')
     generate_instance_fields()
+

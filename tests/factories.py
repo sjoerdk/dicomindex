@@ -9,7 +9,7 @@ from dicomgenerator.templates import CTDatasetFactory
 from dicomindex.orm import Instance, Patient, Series, Study
 
 
-def generate_dicom_structure(structure, output_dir):
+def generate_dicom_file_structure(structure, output_dir):
     """Generate dicom files corresponding to given Patient/study/series
     stucture. Generate 2 files per series.
 

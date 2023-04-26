@@ -8,8 +8,7 @@ from dicomgenerator.export import export
 from dicomgenerator.templates import CTDatasetFactory
 
 from dicomindex.persistence import SQLiteSession
-from tests.conftest import set_factory_db_session
-from tests.test_persistence import generate_full_stack_patient
+from tests.conftest import generate_full_stack_patient, set_factory_db_session
 
 
 def generate_dicom_structure(structure, output_dir):
@@ -37,7 +36,7 @@ structure = {'patient1':
                  '11111.2': ['2222.1', '2222.2', '2222.3']},
             }
 
-#generate_dicom_structure(structure, "/tmp/dummy_dicom")
+#generate_dicom_file_structure(structure, "/tmp/dummy_dicom")
 
 
 def write_large_db(a_db_file):
