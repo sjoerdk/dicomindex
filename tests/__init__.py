@@ -1,4 +1,3 @@
-"""Unit test package for lico."""
 from pathlib import Path
 
 BASE_PATH = Path(__file__).parent.absolute()

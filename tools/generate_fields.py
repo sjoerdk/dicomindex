@@ -2,10 +2,12 @@
 you throw at it. Saves headache
 """
 from dicomgenerator.dicom import VRs
+from jinja2 import Template
 from pydicom.datadict import dictionary_VR
 from pydicom.tag import Tag
 
 from dicomindex.fields import InstanceLevel, SeriesLevel, StudyLevel
+from tools import TEMPLATE_PATH
 
 
 def tag_to_vr(tag_name):
@@ -40,11 +42,11 @@ def tag_to_sqlalchemy(tag_name: str):
     elif vr == VRs.CodeString:
         return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(16))"
     elif vr == VRs.Date:
-        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(8))"
+        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(16))"
     elif vr == VRs.DecimalString:
         return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(32))"
     elif vr == VRs.DateTime:
-        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(36))"
+        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(32))"
     elif vr == VRs.FloatingPointSingle:
         return f"{tag_name}: Mapped[Optional[float]] = mapped_column(Float(4))"
     elif vr == VRs.FloatingPointDouble:
@@ -70,8 +72,7 @@ def tag_to_sqlalchemy(tag_name: str):
     elif vr == VRs.SignedLong:
         return f"{tag_name}: Mapped[Optional[float]] = mapped_column(Float(8))"
     elif vr == VRs.Sequence:
-        # pre-processed in orm.prepare_field_values(). see notes there
-        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(265))"
+        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))"
     elif vr == VRs.SignedShort:
         return f"{tag_name}: Mapped[Optional[float]] = mapped_column(Float(4))"
     elif vr == VRs.ShortText:
@@ -97,27 +98,21 @@ def generate_study_fields():
     """Generate code for Patient level fields in orm.Patient()"""
     fields = StudyLevel()
     skip = ['StudyInstanceUID', 'PatientID']  # already in model
-    code = [tag_to_sqlalchemy(tag) for tag in fields.fields if tag not in skip]
-    for line in code:
-        print(line)
+    return [tag_to_sqlalchemy(tag) for tag in fields.fields if tag not in skip]
 
 
 def generate_series_fields():
     """Generate code for Patient level fields in orm.Patient()"""
     fields = SeriesLevel()
     skip = ['StudyInstanceUID', 'SeriesInstanceUID']  # already in model
-    code = [tag_to_sqlalchemy(tag) for tag in fields.fields if tag not in skip]
-    for line in code:
-        print(line)
+    return [tag_to_sqlalchemy(tag) for tag in fields.fields if tag not in skip]
 
 
 def generate_instance_fields():
     """Generate code for Patient level fields in orm.Patient()"""
     fields = InstanceLevel()
     skip = ['SeriesInstanceUID', 'SOPInstanceUID']  # already in model
-    code = [tag_to_sqlalchemy(tag) for tag in fields.fields if tag not in skip]
-    for line in code:
-        print(line)
+    return [tag_to_sqlalchemy(tag) for tag in fields.fields if tag not in skip]
 
 
 def get_vr(tag_name):
@@ -126,13 +121,11 @@ def get_vr(tag_name):
 
 
 if __name__ == '__main__':
-    print('==== STUDY =====')
-    print('')
-    generate_study_fields()
-    print('==== Series =====')
-    print('')
-    generate_series_fields()
-    print('==== Instance =====')
-    print('')
-    generate_instance_fields()
+    """Generate the content of dicomindex/orm.py"""
+    with open(TEMPLATE_PATH / 'orm.py.j2', 'r') as f:
+        template = Template(f.read())
+    content = template.render(study_fields=generate_study_fields(),
+                              series_fields=generate_series_fields(),
+                              instance_fields=generate_instance_fields())
 
+    print(content)

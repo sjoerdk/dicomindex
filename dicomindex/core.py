@@ -1,5 +1,3 @@
-from collections import defaultdict
-from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Set
 
@@ -117,3 +115,4 @@ class DICOMIndex:
         self.study_uids.add(dataset.StudyInstanceUID)
         self.series_uids.add(dataset.SeriesInstanceUID)
         self.instance_uids.add(dataset.SOPInstanceUID)
+
