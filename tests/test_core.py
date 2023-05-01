@@ -4,7 +4,7 @@ from dicomindex.core import (
     AllDICOMFiles,
     DICOMFilePerSeries,
     DICOMIndex,
-    index_dicom_dir,
+    read_dicom_file,
 )
 from dicomindex.orm import Instance, Patient
 from dicomindex.persistence import SQLiteSession
@@ -29,14 +29,20 @@ def example_dicom_folder(tmp_path):
 
 
 def test_index_dicom_dir(example_dicom_folder, a_db_file):
+
     with SQLiteSession(a_db_file) as session:
-        index_dicom_dir(example_dicom_folder, session)
-        session.commit()
+        index = DICOMIndex.init_from_session(session)
+        for file in DICOMFilePerSeries(example_dicom_folder):
+            session.add_all(
+                index.create_new_db_objects(read_dicom_file(file), str(file))
+            )
+            session.commit()
+
         patients = session.query(Patient).all()
         instances = session.query(Instance).all()
 
         assert len(patients) == 2
-        assert len(instances) == 14
+        assert len(instances) == 7
         assert instances[4].ManufacturerModelName == "Aquilion"
 
 
@@ -46,8 +52,12 @@ def test_index_dirty_dicom_dir(example_dicom_folder, a_db_file):
         f.write("No dicom content!")
 
     with SQLiteSession(a_db_file) as session:
-        index_dicom_dir(example_dicom_folder, session)
-        # just should not crash
+        index = DICOMIndex.init_from_session(session)
+        for file in DICOMFilePerSeries(example_dicom_folder):
+            session.add_all(
+                index.create_new_db_objects(read_dicom_file(file), str(file))
+            )
+            session.commit()
 
 
 def test_dicom_index_initial_db(use_mem_db_session):

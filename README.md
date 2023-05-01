@@ -9,24 +9,36 @@
 
 Reads DICOM files and indexes those in a single sqlite file. Helps answer the question 'what is in this huge folder full of dicom files?'
 
+## Usage
 
-## Useful for
-* Data scientists/ researchers that can write python scripts 
-* DICOM data exploration and sanitizing legacy archives
-* Messy, semi-structured data, 'archives' that are just collections of folders with DICOM files in them
+### Index a DICOM in folder
+To recursively read DICOM files in `/path/to/folder` and add patient/study/series objects to index.
+
+Note: To This reads only a single dicom file in each series folder
+```
+dicomindex index /tmp/myindex.sql /path/to/folder
+```
+
+### What's in my index file?
+```
+dicomindex stats /path/to/folder
+```
+
+### Explore
+I want to look around at what's in my index file.
+* Install [datasette](https://datasette.io/)
+* From commandline, run ```datsette /tmp/myindex.sql```
+ 
+
+## Goals
+* Extract patients/studies/series from DICOM files, save to a single db file  
 
 ## Non-goals
 dicomindex will not do the following:
 * Comprehensive storage. Use a PACS like [orthanc](https://www.orthanc-server.com)
 * Exploration and browsing tools. Use [datasette](https://datasette.io/) 
 
-## Features
-* Reads in DICOM files
-* Indexes into a database file (sqlite initially)
-
-## Installation 
-
-```
-pip install dicomindex
-```
-
+## Useful for
+* Data scientists/ researchers that can write python scripts 
+* DICOM data exploration and sanitizing legacy archives
+* Messy, semi-structured data, 'archives' that are just collections of folders with DICOM files in them

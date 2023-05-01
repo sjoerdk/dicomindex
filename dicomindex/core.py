@@ -5,7 +5,6 @@ import pydicom
 from pydicom import Dataset
 from pydicom.errors import InvalidDicomError
 from pydicom.misc import is_dicom
-from sqlalchemy.orm import Session
 
 from dicomindex.exceptions import DICOMIndexError
 from dicomindex.orm import Instance, Patient, Series, Study
@@ -31,29 +30,6 @@ def read_dicom_file(path):
         return pydicom.filereader.dcmread(str(path), stop_before_pixels=True)
     except InvalidDicomError as e:
         raise DICOMIndexError(e) from e
-
-
-def index_dicom_dir(dicom_dir: Path, session: Session):
-    """Go through dicom dir and build a patient/study/series structure
-
-    Parameters
-    ----------
-    dicom_dir: Path
-        Index this folder
-    session: Session
-        The session to add patient/study/series to
-
-    Returns
-    -------
-    None
-
-    """
-    files = []
-    index = DICOMIndex.init_from_session(session)
-    for file in (x for x in dicom_dir.rglob("*") if x.is_file() and is_dicom(x)):
-        files.append(file)
-        to_add = index.create_new_db_objects(read_dicom_file(file), str(file))
-        session.add_all(to_add)
 
 
 class DICOMIndex:
