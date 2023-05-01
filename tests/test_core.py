@@ -2,8 +2,9 @@ from _pytest.fixtures import fixture
 
 from dicomindex.core import (
     AllDICOMFiles,
-    DICOMFilePerSeries,
+    DICOMDICOMFilePerSeries,
     DICOMIndex,
+    NewDicomFiles,
     read_dicom_file,
 )
 from dicomindex.orm import Instance, Patient
@@ -32,7 +33,7 @@ def test_index_dicom_dir(example_dicom_folder, a_db_file):
 
     with SQLiteSession(a_db_file) as session:
         index = DICOMIndex.init_from_session(session)
-        for file in DICOMFilePerSeries(example_dicom_folder):
+        for file in DICOMDICOMFilePerSeries(example_dicom_folder):
             session.add_all(
                 index.create_new_db_objects(read_dicom_file(file), str(file))
             )
@@ -53,7 +54,7 @@ def test_index_dirty_dicom_dir(example_dicom_folder, a_db_file):
 
     with SQLiteSession(a_db_file) as session:
         index = DICOMIndex.init_from_session(session)
-        for file in DICOMFilePerSeries(example_dicom_folder):
+        for file in DICOMDICOMFilePerSeries(example_dicom_folder):
             session.add_all(
                 index.create_new_db_objects(read_dicom_file(file), str(file))
             )
@@ -86,5 +87,32 @@ def test_structured_folder_iterator(example_dicom_folder):
     with open(example_dicom_folder / "pat" / "stu" / "ser" / "non_dicom.txt", "w") as f:
         f.write("No dicom content!")
 
-    files = [x for x in DICOMFilePerSeries(example_dicom_folder)]
+    files = [x for x in DICOMDICOMFilePerSeries(example_dicom_folder)]
     assert len(files) == 7
+
+
+def test_folder_iterator_skip_existing_instances(example_dicom_folder, a_db_file):
+    """If an instance is in db, don't try to open again"""
+
+    # a folder with some dicom
+    files = [x for x in AllDICOMFiles(example_dicom_folder)]
+    assert len(files) == 14
+
+    # now add 5 of those files to db using create_new_db_objects
+    with SQLiteSession(a_db_file) as session:
+        index = DICOMIndex.init_from_session(session)
+        for file in files[0:5]:
+            session.add_all(
+                index.create_new_db_objects(read_dicom_file(file), str(file))
+            )
+        session.commit()
+
+    # run again on all files in folder
+    with SQLiteSession(a_db_file) as session:
+        index = DICOMIndex.init_from_session(session)
+        new_files = list(
+            iter(NewDicomFiles(AllDICOMFiles(example_dicom_folder), index))
+        )
+        assert len(new_files) == 9
+
+    # the 5 should have been skipped

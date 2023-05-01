@@ -5,7 +5,12 @@ import click
 from click import Path as ClickPath
 from tabulate import tabulate  # type: ignore
 
-from dicomindex.core import DICOMFilePerSeries, DICOMIndex, read_dicom_file
+from dicomindex.core import (
+    DICOMDICOMFilePerSeries,
+    DICOMIndex,
+    NewDicomFiles,
+    read_dicom_file,
+)
 from dicomindex.logs import get_module_logger
 from dicomindex.orm import Instance, Patient, Series, Study
 from dicomindex.persistence import SQLiteSession
@@ -32,10 +37,10 @@ def main(verbose):
     configure_logging(verbose)
 
 
-@click.command()
+@click.command(name="index")
 @click.argument("index_file", type=ClickPath())
 @click.argument("base_folder", type=ClickPath(exists=True))
-def index(index_file, base_folder):
+def index_func(index_file, base_folder):
     """Recurse through base folder, add DICOM files to index"""
 
     logger.info(f"Starting index of '{base_folder}'. Writing to '{index_file}'")
@@ -47,7 +52,9 @@ def index(index_file, base_folder):
         )
     with SQLiteSession(index_file) as session:
         index = DICOMIndex.init_from_session(session)
-        for count, file in enumerate(DICOMFilePerSeries(base_folder)):
+        for count, file in enumerate(
+            NewDicomFiles(DICOMDICOMFilePerSeries(base_folder))
+        ):
             to_add = index.create_new_db_objects(read_dicom_file(file), str(file))
             session.add_all(to_add)
             session.commit()
@@ -73,5 +80,5 @@ def stats(index_file):
         print(tabulate(table, headers="keys", tablefmt="simple"))
 
 
-main.add_command(index)
+main.add_command(index_func)
 main.add_command(stats)
