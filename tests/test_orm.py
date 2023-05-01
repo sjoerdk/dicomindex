@@ -10,10 +10,13 @@ def test_orm():
     Base.metadata.create_all(engine)
     with Session(engine) as session:
 
-        patient1 = Patient(PatientID='Patient1', studies=[
-            Study(StudyInstanceUID='1111.1'),
-            Study(StudyInstanceUID='1111.2')
-        ])
+        patient1 = Patient(
+            PatientID="Patient1",
+            studies=[
+                Study(StudyInstanceUID="1111.1"),
+                Study(StudyInstanceUID="1111.2"),
+            ],
+        )
         session.add_all([patient1])
         session.commit()
 
@@ -23,7 +26,7 @@ def test_orm():
 
 def test_init_from_dataset():
     dataset = CTDatasetFactory()
-    instance = Instance.init_from_dataset(dataset, 'a_path')
+    instance = Instance.init_from_dataset(dataset, "a_path")
     assert instance.SOPInstanceUID
     assert instance.SeriesInstanceUID
     assert instance.path
@@ -38,4 +41,3 @@ def test_init_from_dataset():
 
     patient = Patient.init_from_dataset(dataset)
     assert patient.PatientID
-

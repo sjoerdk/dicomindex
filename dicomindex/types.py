@@ -4,8 +4,7 @@ Translates between pydicom datatypes and sqlalchemy fields.
 Mainly just 'flatten complex pydicom data type to string' currently
 """
 
-from datetime import datetime, time
-
+from datetime import datetime
 import sqlalchemy.types as types
 
 
@@ -60,8 +59,8 @@ class DICOMTime(types.TypeDecorator):
 
     def process_bind_param(self, value, dialect):
         if value:
-            if '.' not in value:  # make strptime below work even without ms
-                value = value + '.0'
+            if "." not in value:  # make strptime below work even without ms
+                value = value + ".0"
             return datetime.strptime(value, "%H%M%S.%f").time()
 
 
@@ -96,5 +95,4 @@ class DICOMIntegerString(DICOMFlattenedString):
 
 
 class DICOMMultipleString(DICOMFlattenedString):
-    """For DICOM objects with VM (Value Multiplicity) > 1
-    """
+    """For DICOM objects with VM (Value Multiplicity) > 1"""

@@ -5,8 +5,16 @@ from sqlalchemy import Float, ForeignKey, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from dicomindex.fields import InstanceLevel, SeriesLevel, StudyLevel
-from dicomindex.types import DICOMDate, DICOMDateTime, DICOMIntegerString, \
-    DICOMMultipleString, DICOMName, DICOMSequence, DICOMTime, DICOMUID
+from dicomindex.types import (
+    DICOMDate,
+    DICOMDateTime,
+    DICOMIntegerString,
+    DICOMMultipleString,
+    DICOMName,
+    DICOMSequence,
+    DICOMTime,
+    DICOMUID,
+)
 
 
 class Base(DeclarativeBase):
@@ -17,7 +25,8 @@ class Patient(Base):
     __tablename__ = "patient"
     PatientID: Mapped[str] = mapped_column(primary_key=True)
     studies: Mapped[List["Study"]] = relationship(
-    back_populates = "patient", cascade = "all, delete-orphan")
+        back_populates="patient", cascade="all, delete-orphan"
+    )
 
     @classmethod
     def init_from_dataset(cls, dataset: Dataset):
@@ -25,30 +34,36 @@ class Patient(Base):
         return cls(PatientID=dataset.PatientID)
 
 
-
 class Study(Base):
     __tablename__ = "study"
     StudyInstanceUID: Mapped[str] = mapped_column(primary_key=True)
     PatientID: Mapped[str] = mapped_column(ForeignKey("patient.PatientID"))
     patient: Mapped["Patient"] = relationship(back_populates="studies")
-    series: Mapped[List["Series"]] = relationship(back_populates="study",
-        cascade="all, delete-orphan")
+    series: Mapped[List["Series"]] = relationship(
+        back_populates="study", cascade="all, delete-orphan"
+    )
 
     # === DICOM fields ===
     StudyDescription: Mapped[Optional[str]] = mapped_column(String(64))
     IssuerOfPatientID: Mapped[Optional[str]] = mapped_column(String(64))
-    ReasonForPerformedProcedureCodeSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
+    ReasonForPerformedProcedureCodeSequence: Mapped[Optional[str]] = mapped_column(
+        DICOMSequence(265)
+    )
     PatientBirthTime: Mapped[Optional[str]] = mapped_column(DICOMTime())
     SourceApplicationEntityTitle: Mapped[Optional[str]] = mapped_column(String(16))
     StudyDate: Mapped[Optional[str]] = mapped_column(DICOMDate())
     ProcedureCodeSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
     PatientBirthDate: Mapped[Optional[str]] = mapped_column(DICOMDate())
     PatientName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
-    NumberOfStudyRelatedInstances: Mapped[Optional[str]] = mapped_column(DICOMIntegerString(12))
+    NumberOfStudyRelatedInstances: Mapped[Optional[str]] = mapped_column(
+        DICOMIntegerString(12)
+    )
     InstanceAvailability: Mapped[Optional[str]] = mapped_column(String(16))
     CurrentPatientLocation: Mapped[Optional[str]] = mapped_column(String(64))
     ReferringPhysicianName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
-    IssuerOfAccessionNumberSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
+    IssuerOfAccessionNumberSequence: Mapped[Optional[str]] = mapped_column(
+        DICOMSequence(265)
+    )
     StudyTime: Mapped[Optional[str]] = mapped_column(DICOMTime())
     StudyStatusID: Mapped[Optional[str]] = mapped_column(String(16))
     SOPClassesInStudy: Mapped[Optional[str]] = mapped_column(DICOMUID(128))
@@ -57,9 +72,13 @@ class Study(Base):
     ConfidentialityCode: Mapped[Optional[str]] = mapped_column(String(64))
     PatientSex: Mapped[Optional[str]] = mapped_column(String(16))
     ModalitiesInStudy: Mapped[Optional[str]] = mapped_column(DICOMMultipleString(16))
-    IssuerOfPatientIDQualifiersSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
+    IssuerOfPatientIDQualifiersSequence: Mapped[Optional[str]] = mapped_column(
+        DICOMSequence(265)
+    )
     StudyID: Mapped[Optional[str]] = mapped_column(String(16))
-    NumberOfStudyRelatedSeries: Mapped[Optional[str]] = mapped_column(DICOMIntegerString(12))
+    NumberOfStudyRelatedSeries: Mapped[Optional[str]] = mapped_column(
+        DICOMIntegerString(12)
+    )
     AccessionNumber: Mapped[Optional[str]] = mapped_column(String(16))
     InstitutionName: Mapped[Optional[str]] = mapped_column(String(64))
     InstitutionalDepartmentName: Mapped[Optional[str]] = mapped_column(String(64))
@@ -67,9 +86,8 @@ class Study(Base):
     @classmethod
     def init_from_dataset(cls, dataset: Dataset):
         """Try to fill all fields of this model with info from dataset"""
-        fields_to_transfer = StudyLevel.fields.union({'PatientID'})
+        fields_to_transfer = StudyLevel.fields.union({"PatientID"})
         return cls(**{tag: dataset.get(tag) for tag in fields_to_transfer})
-
 
 
 class Series(Base):
@@ -77,15 +95,18 @@ class Series(Base):
     SeriesInstanceUID: Mapped[str] = mapped_column(primary_key=True)
     StudyInstanceUID: Mapped[str] = mapped_column(ForeignKey("study.StudyInstanceUID"))
     study: Mapped["Study"] = relationship(back_populates="series")
-    instances: Mapped[List["Instance"]] = relationship(back_populates="series",
-                                                  cascade="all, delete-orphan")
+    instances: Mapped[List["Instance"]] = relationship(
+        back_populates="series", cascade="all, delete-orphan"
+    )
 
     # === DICOM fields ===
     PerformingPhysicianName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
     SeriesDate: Mapped[Optional[str]] = mapped_column(DICOMDate())
     PerformedProcedureStepStatus: Mapped[Optional[str]] = mapped_column(String(16))
     SeriesTime: Mapped[Optional[str]] = mapped_column(DICOMTime())
-    NumberOfSeriesRelatedInstances: Mapped[Optional[str]] = mapped_column(DICOMIntegerString(12))
+    NumberOfSeriesRelatedInstances: Mapped[Optional[str]] = mapped_column(
+        DICOMIntegerString(12)
+    )
     PerformedProcedureStepDescription: Mapped[Optional[str]] = mapped_column(String(64))
     SmallestPixelValueInSeries: Mapped[Optional[float]] = mapped_column(Float(4))
     SeriesNumber: Mapped[Optional[str]] = mapped_column(DICOMIntegerString(12))
@@ -106,7 +127,7 @@ class Series(Base):
     @classmethod
     def init_from_dataset(cls, dataset: Dataset):
         """Try to fill all fields of this model with info from dataset"""
-        fields_to_transfer = SeriesLevel.fields.union({'StudyInstanceUID'})
+        fields_to_transfer = SeriesLevel.fields.union({"StudyInstanceUID"})
         return cls(**{tag: dataset.get(tag) for tag in fields_to_transfer})
 
 
@@ -114,7 +135,8 @@ class Instance(Base):
     __tablename__ = "instance"
     SOPInstanceUID: Mapped[str] = mapped_column(primary_key=True)
     SeriesInstanceUID: Mapped[str] = mapped_column(
-        ForeignKey("series.SeriesInstanceUID"))
+        ForeignKey("series.SeriesInstanceUID")
+    )
     series: Mapped["Series"] = relationship(back_populates="instances")
     path: Mapped[str] = mapped_column(String(512))
 
@@ -149,7 +171,7 @@ class Instance(Base):
     @classmethod
     def init_from_dataset(cls, dataset: Dataset, path: str):
         """Try to fill all fields of this model with info from dataset"""
-        fields_to_transfer = InstanceLevel.fields.union({'SeriesInstanceUID'})
+        fields_to_transfer = InstanceLevel.fields.union({"SeriesInstanceUID"})
         param_dict = {tag: dataset.get(tag) for tag in fields_to_transfer}
-        param_dict['path'] = path
+        param_dict["path"] = path
         return cls(**param_dict)

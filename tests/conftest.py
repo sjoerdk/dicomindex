@@ -6,19 +6,18 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from dicomindex.orm import Base
-from tests.factories import InstanceFactory, PatientFactory, SeriesFactory, \
-    StudyFactory
+from tests.factories import InstanceFactory, PatientFactory, SeriesFactory, StudyFactory
 
 
 @pytest.fixture
 def a_db_file(tmpdir):
-    return Path(tmpdir) / 'a_db_file.db'
+    return Path(tmpdir) / "a_db_file.db"
 
 
 @pytest.fixture
 def a_mem_db_session():
     """A self-closing memory-only db session"""
-    engine = create_engine(f'sqlite://', echo=False)
+    engine = create_engine("sqlite://", echo=False)
     Base.metadata.create_all(engine, checkfirst=True)  # Create if needed
     session = Session(engine)
     yield session
@@ -51,20 +50,25 @@ def generate_full_stack_patient(patient_id: str, randomize=False):
     `tests.conftest.set_factory_db_session()` somewhere to make Factory
     instances write to the db session
     """
-    ranges = {'study': range(2), 'series': range(3),
-              'instance': range(5)}
+    ranges = {"study": range(2), "series": range(3), "instance": range(5)}
     if randomize:
-        ranges = {'study': range(randint(1, 4)),
-                  'series': range(randint(1, 8)),
-                  'instance': range(randint(1, 10))}
+        ranges = {
+            "study": range(randint(1, 4)),
+            "series": range(randint(1, 8)),
+            "instance": range(randint(1, 10)),
+        }
 
     patient = PatientFactory(PatientID=patient_id)
-    studies = [StudyFactory(PatientID=patient.PatientID) for _ in ranges['study']]
+    studies = [StudyFactory(PatientID=patient.PatientID) for _ in ranges["study"]]
     for study in studies:
-        seriess = [SeriesFactory(StudyInstanceUID=study.StudyInstanceUID)
-                    for _ in ranges['series']]
+        seriess = [
+            SeriesFactory(StudyInstanceUID=study.StudyInstanceUID)
+            for _ in ranges["series"]
+        ]
         for series in seriess:
-            [InstanceFactory(SeriesInstanceUID=series.SeriesInstanceUID)
-             for _ in ranges['instance']]
+            [
+                InstanceFactory(SeriesInstanceUID=series.SeriesInstanceUID)
+                for _ in ranges["instance"]
+            ]
 
     return patient

@@ -1,9 +1,11 @@
-from dicomindex.core import DICOMFilePerSeries, DICOMIndex, read_dicom_file
-from dicomindex.persistence import SQLiteSession
 """Run through a folder with patient/study/series/ folder structure.
 Read 1 dicom file inside each series to index all patients/studies/series in the
-folder 
+folder
 """
+
+from dicomindex.core import DICOMFilePerSeries, DICOMIndex, read_dicom_file
+from dicomindex.persistence import SQLiteSession
+
 
 index_file = "/tmp/archive.sql"
 folder_to_index = "/share/dicoms/"
@@ -17,6 +19,5 @@ with SQLiteSession("/tmp/archive2.sql") as session:
         session.add_all(to_add)
         session.commit()
         print(f"{count} - {file}")
-
 
     test = 1

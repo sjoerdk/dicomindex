@@ -33,15 +33,18 @@ def generate_dicom_file_structure(structure, output_dir):
     for patient, studies in structure.items():
         for study, seriess in studies.items():
             for series in seriess:
-                for instance in range(2):
+                for _ in range(2):
                     count = count + 1
                     output_dir_full = output_dir / patient / study / series
                     output_dir_full.mkdir(parents=True, exist_ok=True)
-                    export(dataset=CTDatasetFactory(PatientID=patient,
-                                                    StudyInstanceUID=study,
-                                                    SeriesInstanceUID=series),
-                           path=output_dir_full / str(
-                               uuid.uuid4()))
+                    export(
+                        dataset=CTDatasetFactory(
+                            PatientID=patient,
+                            StudyInstanceUID=study,
+                            SeriesInstanceUID=series,
+                        ),
+                        path=output_dir_full / str(uuid.uuid4()),
+                    )
 
 
 # used to generate DICOM uids and dates
@@ -82,6 +85,3 @@ class InstanceFactory(factory.alchemy.SQLAlchemyModelFactory):
     SOPInstanceUID = factory.Faker("dicom_ui")
     SeriesInstanceUID = factory.SubFactory(SeriesFactory)
     path = factory.Sequence(lambda n: f"/tmp/some/path/file{n}")
-
-
-

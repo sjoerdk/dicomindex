@@ -1,5 +1,5 @@
-"""
-Create some dicom data presenting a small Patient -> Study -> Series -> instance tree
+"""Create some dicom data presenting a small
+Patient -> Study -> Series -> instance tree
 """
 import uuid
 from pathlib import Path
@@ -18,25 +18,26 @@ def generate_dicom_structure(structure, output_dir):
     for patient, studies in structure.items():
         for study, seriess in studies.items():
             for series in seriess:
-                for instance in range(2):
+                for _ in range(2):
                     count = count + 1
-                    export(dataset=CTDatasetFactory(PatientID=patient,
-                                                    StudyInstanceUID=study,
-                                                    SeriesInstanceUID=series),
-                           path=output_dir / str(uuid.uuid4()))
+                    export(
+                        dataset=CTDatasetFactory(
+                            PatientID=patient,
+                            StudyInstanceUID=study,
+                            SeriesInstanceUID=series,
+                        ),
+                        path=output_dir / str(uuid.uuid4()),
+                    )
 
     print(f"Wrote {count} files to {output_dir}")
 
 
-structure = {'patient1':
-                {'11111.1': ['2222.1', '2222.2'],
-                 '11111.2': ['2222.1']},
-            'patient2':
-                {'11111.1': ['2222.1'],
-                 '11111.2': ['2222.1', '2222.2', '2222.3']},
-            }
+structure = {
+    "patient1": {"11111.1": ["2222.1", "2222.2"], "11111.2": ["2222.1"]},
+    "patient2": {"11111.1": ["2222.1"], "11111.2": ["2222.1", "2222.2", "2222.3"]},
+}
 
-#generate_dicom_file_structure(structure, "/tmp/dummy_dicom")
+# generate_dicom_file_structure(structure, "/tmp/dummy_dicom")
 
 
 def write_large_db(a_db_file):
@@ -45,8 +46,8 @@ def write_large_db(a_db_file):
         set_factory_db_session(session)
         for i in range(1000):
             if i % 10 == 0:
-                print(f'{i} of 1000')
-            generate_full_stack_patient(f'patient{i}')
+                print(f"{i} of 1000")
+            generate_full_stack_patient(f"patient{i}")
             session.commit()
 
     print(a_db_file)

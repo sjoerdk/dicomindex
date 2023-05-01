@@ -144,5 +144,3 @@ class StudyLevel:
         "CurrentPatientLocation",
         "SourceApplicationEntityTitle",
     }
-
-

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Set
+from typing import Set
 
 import pydicom
 from pydicom import Dataset
@@ -30,11 +30,11 @@ def read_dicom_file(path):
     try:
         return pydicom.filereader.dcmread(str(path), stop_before_pixels=True)
     except InvalidDicomError as e:
-        raise DICOMIndexError(e)
+        raise DICOMIndexError(e) from e
 
 
 def index_dicom_dir(dicom_dir: Path, session: Session):
-    """ Go through dicom dir and build a patient/study/series structure
+    """Go through dicom dir and build a patient/study/series structure
 
     Parameters
     ----------
@@ -50,7 +50,7 @@ def index_dicom_dir(dicom_dir: Path, session: Session):
     """
     files = []
     index = DICOMIndex.init_from_session(session)
-    for file in (x for x in dicom_dir.rglob('*') if x.is_file() and is_dicom(x)):
+    for file in (x for x in dicom_dir.rglob("*") if x.is_file() and is_dicom(x)):
         files.append(file)
         to_add = index.create_new_db_objects(read_dicom_file(file), str(file))
         session.add_all(to_add)
@@ -63,8 +63,14 @@ class DICOMIndex:
     Patient object will only have to be added to database once. Instead of
     checking the database hundreds of times for patients, keep track here.
     """
-    def __init__(self, patient_ids: Set[str], study_uids: Set[str],
-                 series_uids: Set[str], instance_uids: Set[str]):
+
+    def __init__(
+        self,
+        patient_ids: Set[str],
+        study_uids: Set[str],
+        series_uids: Set[str],
+        instance_uids: Set[str],
+    ):
         self.patient_ids = patient_ids
         self.study_uids = study_uids
         self.series_uids = series_uids
@@ -73,12 +79,12 @@ class DICOMIndex:
     @classmethod
     def init_from_session(cls, session):
         """Populate indexes by reading ids from given session"""
-        return cls(patient_ids=set(
-            pid for pid, in session.query(Patient.PatientID)),
-            study_uids=set(
-                       pid for pid, in session.query(Study.StudyInstanceUID)),
-            series_uids=set(pid for pid, in session.query(Series.SeriesInstanceUID)),
-            instance_uids=set(pid for pid, in session.query(Instance.SOPInstanceUID)))
+        return cls(
+            patient_ids={pid for pid, in session.query(Patient.PatientID)},
+            study_uids={pid for pid, in session.query(Study.StudyInstanceUID)},
+            series_uids={pid for pid, in session.query(Series.SeriesInstanceUID)},
+            instance_uids={pid for pid, in session.query(Instance.SOPInstanceUID)},
+        )
 
     def create_new_db_objects(self, dataset: Dataset, path: str):
         """Create patient/study/series/instance objects from dataset, ignore existing
@@ -124,8 +130,10 @@ class AllDICOMFiles:
         self.path = Path(path)
 
     def __iter__(self):
-        return iter(file for file in
-                    (x for x in self.path.rglob('*') if x.is_file() and is_dicom(x)))
+        return iter(
+            file
+            for file in (x for x in self.path.rglob("*") if x.is_file() and is_dicom(x))
+        )
 
 
 class DICOMFilePerSeries:
@@ -140,9 +148,8 @@ class DICOMFilePerSeries:
     def __iter__(self):
         for series_path in self.root_path.glob("*/*/*"):
             try:
-                yield next(x for x in series_path.glob('*')
-                           if x.is_file() and is_dicom(x))
+                yield next(
+                    x for x in series_path.glob("*") if x.is_file() and is_dicom(x)
+                )
             except StopIteration:
                 continue
-
-
