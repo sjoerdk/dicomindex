@@ -1,7 +1,8 @@
 from _pytest.fixtures import fixture
 
-from dicomindex.core import DICOMIndex, index_dicom_dir
-from dicomindex.orm import Patient
+from dicomindex.core import AllDICOMFiles, DICOMFilePerSeries, DICOMIndex, \
+    index_dicom_dir
+from dicomindex.orm import Instance, Patient
 from dicomindex.persistence import SQLiteSession
 from tests.conftest import generate_full_stack_patient
 from tests.factories import generate_dicom_file_structure
@@ -25,12 +26,24 @@ def example_dicom_folder(tmp_path):
 
 def test_index_dicom_dir(example_dicom_folder, a_db_file):
     with SQLiteSession(a_db_file) as session:
-        result = index_dicom_dir(example_dicom_folder, session)
+        index_dicom_dir(example_dicom_folder, session)
         session.commit()
         patients = session.query(Patient).all()
+        instances = session.query(Instance).all()
+
+        assert len(patients) == 2
+        assert len(instances) == 14
+        assert instances[4].ManufacturerModelName == 'Aquilion'
 
 
-        test = 1
+def test_index_dirty_dicom_dir(example_dicom_folder, a_db_file):
+    """Non-dicom files in directory should be handled gracefully"""
+    with open(example_dicom_folder / "patient1" / "non_dicom.txt", 'w') as f:
+        f.write('No dicom content!')
+
+    with SQLiteSession(a_db_file) as session:
+        index_dicom_dir(example_dicom_folder, session)
+        # just should not crash
 
 
 def test_dicom_index_initial_db(use_mem_db_session):
@@ -43,3 +56,22 @@ def test_dicom_index_initial_db(use_mem_db_session):
     assert len(index.study_uids) == 2
     assert len(index.series_uids) == 6
     assert len(index.instance_uids) == 30
+
+
+def test_folder_iterator(example_dicom_folder):
+    files = [x for x in AllDICOMFiles(example_dicom_folder)]
+    assert len(files) == 14
+
+
+def test_structured_folder_iterator(example_dicom_folder):
+    # set up some tricky cases for this iterator:
+    # an empty folder
+    (example_dicom_folder / "pat" / "stu" / "ser").mkdir(parents=True)
+
+    # some non_dicom file
+    with open(example_dicom_folder / "pat" / "stu" / "ser" / "non_dicom.txt", 'w') as f:
+        f.write('No dicom content!')
+
+    files = [x for x in DICOMFilePerSeries(example_dicom_folder)]
+    assert len(files) == 7
+    

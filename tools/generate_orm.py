@@ -1,9 +1,21 @@
-"""Generate pyton code to store DICOM fields for any valid DICOM field
-you throw at it. Saves headache
+"""Generate orm.py. Requires templates/orm.py.j2
+
+dicomindex saves the values of dicom elements to database. To do this is needs to
+represent the sometimes complex datatypes that come out of pydicom in a simpler
+database structure.
+
+The conversion is controlled by custom field types in dicomindex/fields.py
+orm.py maps each dicom element to a sqlachemy field. Standard if possible, custom if
+needed.
+
+The type of field that should be used is determined by the DICOM element VR
+(Value Representation). Creating and modifying this mapping by hand would be
+tedious and error-prone. So it's generated here.
 """
+
 from dicomgenerator.dicom import VRs
 from jinja2 import Template
-from pydicom.datadict import dictionary_VR
+from pydicom.datadict import dictionary_VM, dictionary_VR
 from pydicom.tag import Tag
 
 from dicomindex.fields import InstanceLevel, SeriesLevel, StudyLevel
@@ -32,29 +44,43 @@ def tag_to_sqlalchemy(tag_name: str):
 
     """
     vr = tag_to_vr(tag_name)
+    vm = get_vm(tag_name)
+
+    def get_string_field(length, vm):
+        """Some dicom fields have multiplicity > 1 which means their pydicom type
+        will be a list. These need special handling to get them into db
+        """
+        if vm == '1':
+            return f"String({length})"
+        elif vm == '1-n':
+            return f"DICOMMultipleString({length})"
+        elif int(vm) > 1:
+            return f"DICOMMultipleString({length})"
+        else:
+            raise ValueError(f'Unknown VM value "{vm}"')
 
     if vr == VRs.ApplicationEntity:
-        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(16))"
+        return f"{tag_name}: Mapped[Optional[str]] = mapped_column({get_string_field(16,vm)})"
     elif vr == VRs.AgeString:
-        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(4))"
+        return f"{tag_name}: Mapped[Optional[str]] = mapped_column({get_string_field(4,vm)})"
     elif vr == VRs.AttributeTag:
-        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(4))"
+        return f"{tag_name}: Mapped[Optional[str]] = mapped_column({get_string_field(4,vm)})"
     elif vr == VRs.CodeString:
-        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(16))"
+        return f"{tag_name}: Mapped[Optional[str]] = mapped_column({get_string_field(16,vm)})"
     elif vr == VRs.Date:
-        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(16))"
+        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(DICOMDate())"
     elif vr == VRs.DecimalString:
-        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(32))"
+        return f"{tag_name}: Mapped[Optional[str]] = mapped_column({get_string_field(32,vm)})"
     elif vr == VRs.DateTime:
-        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(32))"
+        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(DICOMDateTime())"
     elif vr == VRs.FloatingPointSingle:
         return f"{tag_name}: Mapped[Optional[float]] = mapped_column(Float(4))"
     elif vr == VRs.FloatingPointDouble:
         return f"{tag_name}: Mapped[Optional[float]] = mapped_column(Float(8))"
     elif vr == VRs.IntegerString:
-        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(12))"
+        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(DICOMInteger{get_string_field(12,vm)})"
     elif vr == VRs.LongString:
-        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(64))"
+        return f"{tag_name}: Mapped[Optional[str]] = mapped_column({get_string_field(64,vm)})"
     elif vr == VRs.LongText:
         return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(10240))"
     elif vr == VRs.OtherByteString:
@@ -68,7 +94,7 @@ def tag_to_sqlalchemy(tag_name: str):
     elif vr == VRs.PersonName:
         return f"{tag_name}: Mapped[Optional[str]] = mapped_column(DICOMName(192))"
     elif vr == VRs.ShortString:
-        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(16))"
+        return f"{tag_name}: Mapped[Optional[str]] = mapped_column({get_string_field(16,vm)})"
     elif vr == VRs.SignedLong:
         return f"{tag_name}: Mapped[Optional[float]] = mapped_column(Float(8))"
     elif vr == VRs.Sequence:
@@ -78,9 +104,9 @@ def tag_to_sqlalchemy(tag_name: str):
     elif vr == VRs.ShortText:
         return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(1024))"
     elif vr == VRs.Time:
-        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(16))"
+        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(DICOMTime())"
     elif vr == VRs.UniqueIdentifier:
-        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(128))"
+        return f"{tag_name}: Mapped[Optional[str]] = mapped_column(DICOMUID(128))"
     elif vr == VRs.UnsignedLong:
         return f"{tag_name}: Mapped[Optional[float]] = mapped_column(Float(4))"
     elif vr == VRs.Unknown:
@@ -119,6 +145,10 @@ def get_vr(tag_name):
     """Find the correct Value Representation for this tag from pydicom"""
     return dictionary_VR(Tag(tag_name))
 
+
+def get_vm(tag_name):
+    """Find the correct Value Multiplicity for this tag from pydicom"""
+    return dictionary_VM(Tag(tag_name))
 
 if __name__ == '__main__':
     """Generate the content of dicomindex/orm.py"""

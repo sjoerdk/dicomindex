@@ -4,6 +4,7 @@ from typing import List, Set
 import pydicom
 from pydicom import Dataset
 from pydicom.errors import InvalidDicomError
+from pydicom.misc import is_dicom
 from sqlalchemy.orm import Session
 
 from dicomindex.exceptions import DICOMIndexError
@@ -49,7 +50,7 @@ def index_dicom_dir(dicom_dir: Path, session: Session):
     """
     files = []
     index = DICOMIndex.init_from_session(session)
-    for file in (x for x in dicom_dir.rglob('*') if x.is_file()):
+    for file in (x for x in dicom_dir.rglob('*') if x.is_file() and is_dicom(x)):
         files.append(file)
         to_add = index.create_new_db_objects(read_dicom_file(file), str(file))
         session.add_all(to_add)
@@ -115,4 +116,33 @@ class DICOMIndex:
         self.study_uids.add(dataset.StudyInstanceUID)
         self.series_uids.add(dataset.SeriesInstanceUID)
         self.instance_uids.add(dataset.SOPInstanceUID)
+
+
+class AllDICOMFiles:
+    def __init__(self, path):
+        """All DICOM files in path recursively"""
+        self.path = Path(path)
+
+    def __iter__(self):
+        return iter(file for file in
+                    (x for x in self.path.rglob('*') if x.is_file() and is_dicom(x)))
+
+
+class DICOMFilePerSeries:
+    def __init__(self, root_path):
+        """One DICOM file per series in a patient/study/series structured
+        folder
+
+        Can iterate over an archive much quicker
+        """
+        self.root_path = Path(root_path)
+
+    def __iter__(self):
+        for series_path in self.root_path.glob("*/*/*"):
+            try:
+                yield next(x for x in series_path.glob('*')
+                           if x.is_file() and is_dicom(x))
+            except StopIteration:
+                continue
+
 

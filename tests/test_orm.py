@@ -23,7 +23,7 @@ def test_orm():
 
 def test_init_from_dataset():
     dataset = CTDatasetFactory()
-    instance = Instance.init_from_dataset(dataset,'a_path')
+    instance = Instance.init_from_dataset(dataset, 'a_path')
     assert instance.SOPInstanceUID
     assert instance.SeriesInstanceUID
     assert instance.path

@@ -5,7 +5,9 @@ from sqlalchemy import Float, ForeignKey, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from dicomindex.fields import InstanceLevel, SeriesLevel, StudyLevel
-from dicomindex.types import DICOMName, DICOMSequence
+from dicomindex.types import DICOMDate, DICOMDateTime, DICOMIntegerString, \
+    DICOMMultipleString, DICOMName, DICOMSequence, DICOMTime, DICOMUID
+
 
 
 class Base(DeclarativeBase):
