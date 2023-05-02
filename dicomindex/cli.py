@@ -52,13 +52,17 @@ def index_func(index_file, base_folder):
         )
     with SQLiteSession(index_file) as session:
         index = DICOMIndex.init_from_session(session)
+        base_count = len(index.paths)
+        logger.debug(
+            f"Found {base_count} instances already in index. " f"Counting from there"
+        )
         for count, file in enumerate(
-            NewDicomFiles(DICOMDICOMFilePerSeries(base_folder))
+            NewDicomFiles(DICOMDICOMFilePerSeries(base_folder), index)
         ):
             to_add = index.create_new_db_objects(read_dicom_file(file), str(file))
             session.add_all(to_add)
             session.commit()
-            logger.debug(f"{count} - {file}")
+            logger.debug(f"{count+base_count} - {file}")
     logger.info("Finished")
 
 

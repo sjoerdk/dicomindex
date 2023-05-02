@@ -1,5 +1,6 @@
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, Set
+from typing import Iterator, Set, Type
 
 import pydicom
 from pydicom import Dataset
@@ -123,17 +124,73 @@ class AllDICOMFiles(DICOMFileIterator):
         )
 
 
+@dataclass
+class RootPathLevel:
+    """Determines whether a folder is at archive/patient/study or series level"""
+
+    name: str  # what to call this level
+    series_glob: str  # how can you find all series folders
+
+
+class ArchiveLevel(RootPathLevel):
+    """A folder containing patient folders"""
+
+    name = "ArchiveLevel"
+    series_glob = "*/*/*"
+
+
+class PatientLevel(RootPathLevel):
+    """A folder containing study folders for a single patient"""
+
+    name = "PatientLevel"
+    series_glob = "*/*"
+
+
+class StudyLevel(RootPathLevel):
+    """A folder containing series folders for a single study"""
+
+    name = "StudyLevel"
+    series_glob = "*"
+
+
+@dataclass
+class RootPathLevels:
+    archive = ArchiveLevel
+    patient = PatientLevel
+    study = StudyLevel
+
+
 class DICOMDICOMFilePerSeries(DICOMFileIterator):
-    def __init__(self, root_path):
+    def __init__(
+        self, root_path: str, root_level: Type[RootPathLevel] = RootPathLevels.archive
+    ):
         """One DICOM file per series in a patient/study/series structured
         folder
 
         Can iterate over an archive much quicker
+
+        Parameters
+        ----------
+        root_path:
+            Iterate over this path
+        root_level: RootPathLevel, optional
+            Is root path an archive (recurse through patient folders), a single
+            patient (recurse through study folders) or a series?
+            Defaults to archive.
+
+        Notes
+        -----
+        This method requires the archive to be in a strict patient/study/series/files
+        folder structure. Any dicom files outside this structure will be ignored.
         """
         self.root_path = Path(root_path)
+        self.root_level = root_level
 
     def __iter__(self):
-        for series_path in self.root_path.glob("*/*/*"):
+        series_paths = iter(
+            x for x in self.root_path.glob(self.root_level.series_glob) if x.is_dir()
+        )
+        for series_path in series_paths:
             try:
                 yield next(
                     x for x in series_path.glob("*") if x.is_file() and is_dicom(x)
