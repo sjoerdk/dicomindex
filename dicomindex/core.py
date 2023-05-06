@@ -1,11 +1,9 @@
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Iterator, Set, Type
+from typing import Iterator, Set
 
 import pydicom
 from pydicom import Dataset
 from pydicom.errors import InvalidDicomError
-from pydicom.misc import is_dicom
 
 from dicomindex.exceptions import DICOMIndexError
 from dicomindex.orm import Instance, Patient, Series, Study
@@ -112,18 +110,6 @@ class DICOMFileIterator:
         pass
 
 
-class AllDICOMFiles(DICOMFileIterator):
-    def __init__(self, path):
-        """All DICOM files in path recursively"""
-        self.path = Path(path)
-
-    def __iter__(self):
-        return iter(
-            file
-            for file in (x for x in self.path.rglob("*") if x.is_file() and is_dicom(x))
-        )
-
-
 @dataclass
 class RootPathLevel:
     """Determines whether a folder is at archive/patient/study or series level"""
@@ -160,48 +146,10 @@ class RootPathLevels:
     study = StudyLevel
 
 
-class DICOMDICOMFilePerSeries(DICOMFileIterator):
-    def __init__(
-        self, root_path: str, root_level: Type[RootPathLevel] = RootPathLevels.archive
-    ):
-        """One DICOM file per series in a patient/study/series structured
-        folder
-
-        Can iterate over an archive much quicker
-
-        Parameters
-        ----------
-        root_path:
-            Iterate over this path
-        root_level: RootPathLevel, optional
-            Is root path an archive (recurse through patient folders), a single
-            patient (recurse through study folders) or a series?
-            Defaults to archive.
-
-        Notes
-        -----
-        This method requires the archive to be in a strict patient/study/series/files
-        folder structure. Any dicom files outside this structure will be ignored.
-        """
-        self.root_path = Path(root_path)
-        self.root_level = root_level
-
-    def __iter__(self):
-        series_paths = iter(
-            x for x in self.root_path.glob(self.root_level.series_glob) if x.is_dir()
-        )
-        for series_path in series_paths:
-            try:
-                yield next(
-                    x for x in series_path.glob("*") if x.is_file() and is_dicom(x)
-                )
-            except StopIteration:
-                continue
-
-
 class NewDicomFiles(DICOMFileIterator):
     def __init__(self, file_iterator: DICOMFileIterator, index: DICOMIndex):
-        """Yields file paths from iterator, unless
+        """Yields file paths from iterator, unless dicom index already contains
+        this path
 
         Parameters
         ----------

@@ -3,7 +3,8 @@ Read 1 dicom file inside each series to index all patients/studies/series in the
 folder
 """
 
-from dicomindex.core import DICOMDICOMFilePerSeries, DICOMIndex, read_dicom_file
+from dicomindex.core import DICOMIndex, read_dicom_file
+from dicomindex.iterators import DICOMFilePerSeries
 from dicomindex.persistence import SQLiteSession
 
 
@@ -12,7 +13,7 @@ folder_to_index = "/share/dicoms/"
 
 with SQLiteSession("/tmp/archive2.sql") as session:
     index = DICOMIndex.init_from_session(session)
-    for count, file in enumerate(DICOMDICOMFilePerSeries(folder_to_index)):
+    for count, file in enumerate(DICOMFilePerSeries(folder_to_index)):
         if count > 1:
             break
         to_add = index.create_new_db_objects(read_dicom_file(file), str(file))

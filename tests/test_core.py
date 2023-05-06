@@ -1,12 +1,11 @@
 from _pytest.fixtures import fixture
 
 from dicomindex.core import (
-    AllDICOMFiles,
-    DICOMDICOMFilePerSeries,
     DICOMIndex,
     NewDicomFiles,
     read_dicom_file,
 )
+from dicomindex.iterators import AllDICOMFiles, DICOMFilePerSeries
 from dicomindex.orm import Instance, Patient
 from dicomindex.persistence import SQLiteSession
 from tests.conftest import generate_full_stack_patient
@@ -33,7 +32,7 @@ def test_index_dicom_dir(example_dicom_folder, a_db_file):
 
     with SQLiteSession(a_db_file) as session:
         index = DICOMIndex.init_from_session(session)
-        for file in DICOMDICOMFilePerSeries(example_dicom_folder):
+        for file in DICOMFilePerSeries(example_dicom_folder):
             session.add_all(
                 index.create_new_db_objects(read_dicom_file(file), str(file))
             )
@@ -54,7 +53,7 @@ def test_index_dirty_dicom_dir(example_dicom_folder, a_db_file):
 
     with SQLiteSession(a_db_file) as session:
         index = DICOMIndex.init_from_session(session)
-        for file in DICOMDICOMFilePerSeries(example_dicom_folder):
+        for file in DICOMFilePerSeries(example_dicom_folder):
             session.add_all(
                 index.create_new_db_objects(read_dicom_file(file), str(file))
             )
@@ -87,7 +86,7 @@ def test_structured_folder_iterator(example_dicom_folder):
     with open(example_dicom_folder / "pat" / "stu" / "ser" / "non_dicom.txt", "w") as f:
         f.write("No dicom content!")
 
-    files = [x for x in DICOMDICOMFilePerSeries(example_dicom_folder)]
+    files = [x for x in DICOMFilePerSeries(example_dicom_folder)]
     assert len(files) == 7
 
 
