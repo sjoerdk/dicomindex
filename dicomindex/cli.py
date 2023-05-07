@@ -59,7 +59,8 @@ def index_func(index_file, base_folder):
 
         def path_iter():
             for path in base_folder.rglob("*"):
-                if path in index.paths or not path.is_file():
+                if str(path) in index.paths or not path.is_file():
+                    logger.debug(f"skipping {path}")
                     continue  # skip this path
                 else:
                     yield path

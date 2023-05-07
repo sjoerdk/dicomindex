@@ -55,16 +55,17 @@ class EagerIterator:
         self.iterator = iterator
         self.timeout = timeout
         self.generator = None
+        self.process = None
         self.length = 0
         self.value_queue = Queue()
         self.message_queue = Queue()
 
     def _init_generator(self):
-        queue_filler = Process(
+        self.process = Process(
             target=self.push_iter_to_queue,
             args=(self.iterator, self.value_queue, self.message_queue),
         )
-        queue_filler.start()
+        self.process.start()
         while True:
             val = self.value_queue.get(timeout=self.timeout)
             if val == WorkerMessages.FINISHED:
@@ -91,6 +92,14 @@ class EagerIterator:
     def __len__(self):
         self._update_length()
         return self.length
+
+    def __enter__(self):
+        if not self.generator:
+            self.generator = self._init_generator()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.process.terminate()
 
     @staticmethod
     def push_iter_to_queue(iterator, value_queue, message_queue):
@@ -133,23 +142,23 @@ class FileProcessor:
     def _init_generator(self):
 
         # start eagerly loading path generator
-        paths = EagerIterator(self.path_generator)
+        with EagerIterator(self.path_generator) as paths:
 
-        # create and load workers
-        with ThreadPool() as pool:
+            # create and load workers
+            with ThreadPool() as pool:
 
-            def counting_iterator(iterator):
-                """For having a running updatable total"""
-                for x in iterator:
-                    self.loaded = len(iterator)
-                    yield x
+                def counting_iterator(iterator):
+                    """For having a running updatable total"""
+                    for x in iterator:
+                        self.loaded = len(iterator)
+                        yield x
 
-            logger.debug("mapping input iter to thread pool")
-            yield from pool.imap_unordered(
-                self.process_function, counting_iterator(paths)
-            )
+                logger.debug("mapping input iter to thread pool")
+                yield from pool.imap_unordered(
+                    self.process_function, counting_iterator(paths)
+                )
 
-            logger.debug("finished. Exiting thread pool")
+                logger.debug("finished. Exiting thread pool")
 
     def __next__(self):
         if not self.generator:

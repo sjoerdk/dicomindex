@@ -6,7 +6,10 @@ from pydicom import Dataset
 from pydicom.errors import InvalidDicomError
 
 from dicomindex.exceptions import DICOMIndexError
+from dicomindex.logs import get_module_logger
 from dicomindex.orm import Instance, Patient, Series, Study
+
+logger = get_module_logger("core")
 
 
 def read_dicom_file(path):
@@ -91,6 +94,7 @@ class DICOMIndex:
         if dataset.SOPInstanceUID not in self.instance_uids:
             db_objects.append(Instance.init_from_dataset(dataset, path))
 
+        logger.debug(f"Added {len(db_objects)} db objects for {path}")
         self.add_to_index(dataset, path)
         return db_objects
 
