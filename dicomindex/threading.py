@@ -100,7 +100,8 @@ class EagerIterator:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         logger.debug("Terminating path iterator process")
-        self.process.terminate()
+        if self.process.is_alive():
+            self.process.terminate()
 
     @staticmethod
     def push_iter_to_queue(iterator, value_queue, message_queue):

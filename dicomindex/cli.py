@@ -5,14 +5,11 @@ import click
 from click import Path as ClickPath
 from tabulate import tabulate  # type: ignore
 
-from dicomindex.core import DICOMIndex
-
+from dicomindex.processing import index_folder
 
 from dicomindex.logs import get_module_logger
 from dicomindex.orm import Instance, Patient, Series, Study
 from dicomindex.persistence import SQLiteSession
-from dicomindex.statistics import PathStatuses, Statistics
-from dicomindex.threading import DICOMDatasetsThreaded, var_len_tqdm
 
 logger = get_module_logger("cli")
 
@@ -50,27 +47,9 @@ def index_func(index_file, base_folder):
             f"append to this file?",
             abort=True,
         )
+
     with SQLiteSession(index_file) as session:
-        index = DICOMIndex.init_from_session(session)
-        stats = Statistics()
-        base_count = len(index.paths)
-        logger.debug(f"Found {base_count} instances already in index")
-
-        def path_iter():
-            for path in base_folder.rglob("*"):
-                if str(path) in index.paths or not path.is_file():
-                    stats.add(path, PathStatuses.SKIPPED_ALREADY_VISITED)
-                    logger.debug(f"skipping {path}")
-                    continue  # skip this path
-                else:
-                    yield path
-
-        # progress bar added with var_len_tqdm
-        for ds in var_len_tqdm(DICOMDatasetsThreaded(path_iter())):
-            stats.add(ds.filename, PathStatuses.PROCESSED)
-            to_add = index.create_new_db_objects(ds, ds.filename)
-            session.add_all(to_add)
-            session.commit()
+        stats = index_folder(base_folder, session, use_progress_bar=True)
 
     logger.info("Finished")
     logger.info(stats.summary())

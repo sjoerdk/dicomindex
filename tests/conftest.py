@@ -6,7 +6,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from dicomindex.orm import Base
-from tests.factories import InstanceFactory, PatientFactory, SeriesFactory, StudyFactory
+from tests.factories import (
+    InstanceFactory,
+    PatientFactory,
+    SeriesFactory,
+    StudyFactory,
+    generate_dicom_file_structure,
+)
 
 
 @pytest.fixture
@@ -31,6 +37,22 @@ def set_factory_db_session(session):
     StudyFactory._meta.sqlalchemy_session = session
     SeriesFactory._meta.sqlalchemy_session = session
     InstanceFactory._meta.sqlalchemy_session = session
+
+
+@pytest.fixture
+def example_dicom_folder(tmp_path):
+    """An example folder filled with dicom files. Folder has patient/study/series
+    folder structure. Contains 2 files per series
+    """
+    structure = {
+        "patient1": {"11111.1": ["2222.1", "2222.2"], "11111.2": ["2222.1"]},
+        "patient2": {"11111.1": ["2222.1"], "11111.2": ["2222.1", "2222.2", "2222.3"]},
+    }
+
+    dicom_path = tmp_path / "dicomfolder"
+    dicom_path.mkdir()
+    generate_dicom_file_structure(structure=structure, output_dir=dicom_path)
+    return dicom_path
 
 
 @pytest.fixture

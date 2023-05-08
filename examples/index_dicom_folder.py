@@ -3,7 +3,8 @@ Read 1 dicom file inside each series to index all patients/studies/series in the
 folder
 """
 
-from dicomindex.core import DICOMIndex, read_dicom_file
+from dicomindex.core import read_dicom_file
+from dicomindex.processing import DICOMIndex
 from dicomindex.iterators import AllDICOMFiles
 from dicomindex.persistence import SQLiteSession
 

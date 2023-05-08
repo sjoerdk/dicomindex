@@ -6,20 +6,43 @@ from dicomindex.core import (
     read_dicom_file,
 )
 from dicomindex.exceptions import DICOMIndexError
+from dicomindex.logs import get_module_logger
+
+logger = get_module_logger("iterators")
 
 
 class AllFiles:
+    """Walk through first-level folders first as this creates a better
+    progress indication for large folders
+    """
+
     def __init__(self, path):
         """Path for each file in path recursively"""
         self.path = Path(path)
 
     def __iter__(self):
-        return iter(file for file in (x for x in self.path.rglob("*") if x.is_file()))
+        logger.debug(f"Iterating over all files in {self.path}")
+        for item in self.path.glob("*"):
+            if item.is_file():
+                yield item
+            elif item.is_dir():
+                logger.debug(f"Iterating over sub-path {item}")
+                for x in item.rglob("*"):
+                    if x.is_file():
+                        yield x
+                    else:
+                        continue
 
 
 class AllDICOMFiles:
     def __init__(self, path):
-        """Path for each DICOM file in path recursively"""
+        """Path for each DICOM file in path recursively
+
+        Notes
+        -----
+        Slow on slower filesystems as is performs an extra file open operation.
+        Consider using AllDicomDatasets below
+        """
         self.path = Path(path)
 
     def __iter__(self):
