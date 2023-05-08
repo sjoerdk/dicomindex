@@ -1,7 +1,7 @@
 from _pytest.fixtures import fixture
 
-from dicomindex.core import DICOMIndex, NewDicomFiles, read_dicom_file
-from dicomindex.iterators import AllDICOMFiles, DICOMFilePerSeries
+from dicomindex.core import DICOMIndex, read_dicom_file
+from dicomindex.iterators import AllDICOMFiles
 from dicomindex.orm import Instance, Patient
 from dicomindex.persistence import SQLiteSession
 from tests.conftest import generate_full_stack_patient
@@ -28,7 +28,7 @@ def test_index_dicom_dir(example_dicom_folder, a_db_file):
 
     with SQLiteSession(a_db_file) as session:
         index = DICOMIndex.init_from_session(session)
-        for file in DICOMFilePerSeries(example_dicom_folder):
+        for file in AllDICOMFiles(example_dicom_folder):
             session.add_all(
                 index.create_new_db_objects(read_dicom_file(file), str(file))
             )
@@ -38,7 +38,7 @@ def test_index_dicom_dir(example_dicom_folder, a_db_file):
         instances = session.query(Instance).all()
 
         assert len(patients) == 2
-        assert len(instances) == 7
+        assert len(instances) == 14
         assert instances[4].ManufacturerModelName == "Aquilion"
 
 
@@ -49,7 +49,7 @@ def test_index_dirty_dicom_dir(example_dicom_folder, a_db_file):
 
     with SQLiteSession(a_db_file) as session:
         index = DICOMIndex.init_from_session(session)
-        for file in DICOMFilePerSeries(example_dicom_folder):
+        for file in AllDICOMFiles(example_dicom_folder):
             session.add_all(
                 index.create_new_db_objects(read_dicom_file(file), str(file))
             )
@@ -73,19 +73,6 @@ def test_folder_iterator(example_dicom_folder):
     assert len(files) == 14
 
 
-def test_structured_folder_iterator(example_dicom_folder):
-    # set up some tricky cases for this iterator:
-    # an empty folder
-    (example_dicom_folder / "pat" / "stu" / "ser").mkdir(parents=True)
-
-    # some non_dicom file
-    with open(example_dicom_folder / "pat" / "stu" / "ser" / "non_dicom.txt", "w") as f:
-        f.write("No dicom content!")
-
-    files = [x for x in DICOMFilePerSeries(example_dicom_folder)]
-    assert len(files) == 7
-
-
 def test_folder_iterator_skip_existing_instances(example_dicom_folder, a_db_file):
     """If an instance is in db, don't try to open again"""
 
@@ -106,8 +93,8 @@ def test_folder_iterator_skip_existing_instances(example_dicom_folder, a_db_file
     with SQLiteSession(a_db_file) as session:
         index = DICOMIndex.init_from_session(session)
         new_files = list(
-            iter(NewDicomFiles(AllDICOMFiles(example_dicom_folder), index))
+            x for x in AllDICOMFiles(example_dicom_folder) if str(x) not in index.paths
         )
-        assert len(new_files) == 9
 
-    # the 5 should have been skipped
+        assert len(new_files) == 9
+        #  5 should have been skipped

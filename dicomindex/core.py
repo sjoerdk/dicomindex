@@ -1,5 +1,4 @@
-from dataclasses import dataclass
-from typing import Iterator, Set
+from typing import Set
 
 import pydicom
 from pydicom import Dataset
@@ -105,65 +104,3 @@ class DICOMIndex:
         self.series_uids.add(dataset.SeriesInstanceUID)
         self.instance_uids.add(dataset.SOPInstanceUID)
         self.paths.add(path)
-
-
-class DICOMFileIterator:
-    """Something that yields file paths to valid DICOM files"""
-
-    def __iter__(self) -> Iterator[str]:
-        pass
-
-
-@dataclass
-class RootPathLevel:
-    """Determines whether a folder is at archive/patient/study or series level"""
-
-    name: str  # what to call this level
-    series_glob: str  # how can you find all series folders
-
-
-class ArchiveLevel(RootPathLevel):
-    """A folder containing patient folders"""
-
-    name = "ArchiveLevel"
-    series_glob = "*/*/*"
-
-
-class PatientLevel(RootPathLevel):
-    """A folder containing study folders for a single patient"""
-
-    name = "PatientLevel"
-    series_glob = "*/*"
-
-
-class StudyLevel(RootPathLevel):
-    """A folder containing series folders for a single study"""
-
-    name = "StudyLevel"
-    series_glob = "*"
-
-
-@dataclass
-class RootPathLevels:
-    archive = ArchiveLevel
-    patient = PatientLevel
-    study = StudyLevel
-
-
-class NewDicomFiles(DICOMFileIterator):
-    def __init__(self, file_iterator: DICOMFileIterator, index: DICOMIndex):
-        """Yields file paths from iterator, unless dicom index already contains
-        this path
-
-        Parameters
-        ----------
-        file_iterator:
-            Iterate over DICOM file paths from this iterator
-        index:
-            Check this index for SOPInstanceUIDs
-        """
-        self.file_iterator = file_iterator
-        self.index = index
-
-    def __iter__(self):
-        return iter(x for x in self.file_iterator if str(x) not in self.index.paths)
