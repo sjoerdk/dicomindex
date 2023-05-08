@@ -86,8 +86,8 @@ def stats_func(index_file):
         print(f"Statistics for {index_file}")
         table = {
             "Patients": [session.query(Patient).count()],
-            "Series": [session.query(Series).count()],
             "Studies": [session.query(Study).count()],
+            "Series": [session.query(Series).count()],
             "Instances:": [session.query(Instance).count()],
         }
 
