@@ -49,9 +49,16 @@ def tag_to_sqlalchemy(tag_name: str):  # noqa: C901  (Too complex. But DICOM..)
     def get_string_field(length, vm):
         """Some dicom fields have multiplicity > 1 which means their pydicom type
         will be a list. These need special handling to get them into db
+
+        Notes
+        -----
+        Regular string-type DICOM parameters are not cast to regular string, but
+        rather to cast to DICOMFlattenedString. The later does an explicit str()
+        conversion. This is because real-life DICOM cannot be trusted to conform
+        to VM.
         """
         if vm == "1":
-            return f"String({length})"
+            return f"DICOMFlattenedString({length})"
         elif vm == "1-n":
             return f"DICOMMultipleString({length})"
         elif int(vm) > 1:
@@ -95,7 +102,7 @@ def tag_to_sqlalchemy(tag_name: str):  # noqa: C901  (Too complex. But DICOM..)
     elif vr == VRs.IntegerString:
         return (
             f"{tag_name}: Mapped[Optional[str]] = "
-            f"mapped_column(DICOMInteger{get_string_field(12,vm)})"
+            f"mapped_column(DICOMIntegerString(12))"
         )
     elif vr == VRs.LongString:
         return (

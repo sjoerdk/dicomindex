@@ -4,21 +4,19 @@ folder
 """
 
 from dicomindex.core import DICOMIndex, read_dicom_file
-from dicomindex.iterators import DICOMFilePerSeries
+from dicomindex.iterators import AllDICOMFiles
 from dicomindex.persistence import SQLiteSession
 
 
 index_file = "/tmp/archive.sql"
-folder_to_index = "/share/dicoms/"
+folder_to_index = "/folder/with/dicom"
 
 with SQLiteSession("/tmp/archive2.sql") as session:
     index = DICOMIndex.init_from_session(session)
-    for count, file in enumerate(DICOMFilePerSeries(folder_to_index)):
+    for count, file in enumerate(AllDICOMFiles(folder_to_index)):
         if count > 1:
             break
         to_add = index.create_new_db_objects(read_dicom_file(file), str(file))
-        session.add_all(to_add)
-        session.commit()
-        print(f"{count} - {file}")
 
-    test = 1
+        session.add_all(to_add)
+        print(f"{count} - {file}")

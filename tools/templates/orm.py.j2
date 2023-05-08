@@ -5,9 +5,9 @@ from sqlalchemy import Float, ForeignKey, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from dicomindex.fields import InstanceLevel, SeriesLevel, StudyLevel
-from dicomindex.types import DICOMDate, DICOMDateTime, DICOMIntegerString, \
-    DICOMMultipleString, DICOMName, DICOMSequence, DICOMTime, DICOMUID
-
+from dicomindex.types import DICOMDate, DICOMDateTime, DICOMFlattenedString, \
+    DICOMIntegerString, DICOMMultipleString, DICOMName, DICOMSequence, DICOMTime, \
+    DICOMUID
 
 
 class Base(DeclarativeBase):
@@ -18,13 +18,12 @@ class Patient(Base):
     __tablename__ = "patient"
     PatientID: Mapped[str] = mapped_column(primary_key=True)
     studies: Mapped[List["Study"]] = relationship(
-    back_populates = "patient", cascade = "all, delete-orphan")
+    back_populates="patient", cascade="all, delete-orphan")
 
     @classmethod
     def init_from_dataset(cls, dataset: Dataset):
         """Try to fill all fields of this model with info from dataset"""
         return cls(PatientID=dataset.PatientID)
-
 
 
 class Study(Base):
@@ -43,7 +42,6 @@ class Study(Base):
         """Try to fill all fields of this model with info from dataset"""
         fields_to_transfer = StudyLevel.fields.union({'PatientID'})
         return cls(**{tag: dataset.get(tag) for tag in fields_to_transfer})
-
 
 
 class Series(Base):

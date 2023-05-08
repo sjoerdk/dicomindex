@@ -1,10 +1,6 @@
 from _pytest.fixtures import fixture
 
-from dicomindex.core import (
-    DICOMIndex,
-    NewDicomFiles,
-    read_dicom_file,
-)
+from dicomindex.core import DICOMIndex, NewDicomFiles, read_dicom_file
 from dicomindex.iterators import AllDICOMFiles, DICOMFilePerSeries
 from dicomindex.orm import Instance, Patient
 from dicomindex.persistence import SQLiteSession

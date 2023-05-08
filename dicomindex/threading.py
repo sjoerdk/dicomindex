@@ -99,6 +99,7 @@ class EagerIterator:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        logger.debug("Terminating path iterator process")
         self.process.terminate()
 
     @staticmethod

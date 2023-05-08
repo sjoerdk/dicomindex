@@ -8,6 +8,7 @@ from dicomindex.fields import InstanceLevel, SeriesLevel, StudyLevel
 from dicomindex.types import (
     DICOMDate,
     DICOMDateTime,
+    DICOMFlattenedString,
     DICOMIntegerString,
     DICOMMultipleString,
     DICOMName,
@@ -44,44 +45,54 @@ class Study(Base):
     )
 
     # === DICOM fields ===
-    StudyDescription: Mapped[Optional[str]] = mapped_column(String(64))
-    IssuerOfPatientID: Mapped[Optional[str]] = mapped_column(String(64))
+    ReferringPhysicianName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
+    PatientBirthTime: Mapped[Optional[str]] = mapped_column(DICOMTime())
+    AccessionNumber: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(16))
     ReasonForPerformedProcedureCodeSequence: Mapped[Optional[str]] = mapped_column(
         DICOMSequence(265)
     )
-    PatientBirthTime: Mapped[Optional[str]] = mapped_column(DICOMTime())
-    SourceApplicationEntityTitle: Mapped[Optional[str]] = mapped_column(String(16))
-    StudyDate: Mapped[Optional[str]] = mapped_column(DICOMDate())
-    ProcedureCodeSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
-    PatientBirthDate: Mapped[Optional[str]] = mapped_column(DICOMDate())
-    PatientName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
-    NumberOfStudyRelatedInstances: Mapped[Optional[str]] = mapped_column(
-        DICOMIntegerString(12)
+    SourceApplicationEntityTitle: Mapped[Optional[str]] = mapped_column(
+        DICOMFlattenedString(16)
     )
-    InstanceAvailability: Mapped[Optional[str]] = mapped_column(String(16))
-    CurrentPatientLocation: Mapped[Optional[str]] = mapped_column(String(64))
-    ReferringPhysicianName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
-    IssuerOfAccessionNumberSequence: Mapped[Optional[str]] = mapped_column(
-        DICOMSequence(265)
-    )
-    StudyTime: Mapped[Optional[str]] = mapped_column(DICOMTime())
-    StudyStatusID: Mapped[Optional[str]] = mapped_column(String(16))
-    SOPClassesInStudy: Mapped[Optional[str]] = mapped_column(DICOMUID(128))
-    RequestedProcedureID: Mapped[Optional[str]] = mapped_column(String(16))
-    OtherPatientIDsSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
-    ConfidentialityCode: Mapped[Optional[str]] = mapped_column(String(64))
-    PatientSex: Mapped[Optional[str]] = mapped_column(String(16))
-    ModalitiesInStudy: Mapped[Optional[str]] = mapped_column(DICOMMultipleString(16))
     IssuerOfPatientIDQualifiersSequence: Mapped[Optional[str]] = mapped_column(
         DICOMSequence(265)
     )
-    StudyID: Mapped[Optional[str]] = mapped_column(String(16))
+    InstanceAvailability: Mapped[Optional[str]] = mapped_column(
+        DICOMFlattenedString(16)
+    )
+    PatientName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
+    InstitutionName: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(64))
+    CurrentPatientLocation: Mapped[Optional[str]] = mapped_column(
+        DICOMFlattenedString(64)
+    )
+    ProcedureCodeSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
+    IssuerOfPatientID: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(64))
+    PatientSex: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(16))
+    NumberOfStudyRelatedInstances: Mapped[Optional[str]] = mapped_column(
+        DICOMIntegerString(12)
+    )
     NumberOfStudyRelatedSeries: Mapped[Optional[str]] = mapped_column(
         DICOMIntegerString(12)
     )
-    AccessionNumber: Mapped[Optional[str]] = mapped_column(String(16))
-    InstitutionName: Mapped[Optional[str]] = mapped_column(String(64))
-    InstitutionalDepartmentName: Mapped[Optional[str]] = mapped_column(String(64))
+    StudyTime: Mapped[Optional[str]] = mapped_column(DICOMTime())
+    PatientBirthDate: Mapped[Optional[str]] = mapped_column(DICOMDate())
+    ConfidentialityCode: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(64))
+    InstitutionalDepartmentName: Mapped[Optional[str]] = mapped_column(
+        DICOMFlattenedString(64)
+    )
+    StudyStatusID: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(16))
+    ModalitiesInStudy: Mapped[Optional[str]] = mapped_column(DICOMMultipleString(16))
+    StudyDate: Mapped[Optional[str]] = mapped_column(DICOMDate())
+    SOPClassesInStudy: Mapped[Optional[str]] = mapped_column(DICOMUID(128))
+    RequestedProcedureID: Mapped[Optional[str]] = mapped_column(
+        DICOMFlattenedString(16)
+    )
+    IssuerOfAccessionNumberSequence: Mapped[Optional[str]] = mapped_column(
+        DICOMSequence(265)
+    )
+    StudyDescription: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(64))
+    StudyID: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(16))
+    OtherPatientIDsSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
 
     @classmethod
     def init_from_dataset(cls, dataset: Dataset):
@@ -100,29 +111,35 @@ class Series(Base):
     )
 
     # === DICOM fields ===
-    PerformingPhysicianName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
-    SeriesDate: Mapped[Optional[str]] = mapped_column(DICOMDate())
-    PerformedProcedureStepStatus: Mapped[Optional[str]] = mapped_column(String(16))
-    SeriesTime: Mapped[Optional[str]] = mapped_column(DICOMTime())
+    Laterality: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(16))
+    AnatomicRegionSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
+    PerformedProcedureStepStartDate: Mapped[Optional[str]] = mapped_column(DICOMDate())
+    PerformedProcedureStepDescription: Mapped[Optional[str]] = mapped_column(
+        DICOMFlattenedString(64)
+    )
+    SeriesNumber: Mapped[Optional[str]] = mapped_column(DICOMIntegerString(12))
+    Modality: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(16))
+    PerformedProcedureStepStatus: Mapped[Optional[str]] = mapped_column(
+        DICOMFlattenedString(16)
+    )
     NumberOfSeriesRelatedInstances: Mapped[Optional[str]] = mapped_column(
         DICOMIntegerString(12)
     )
-    PerformedProcedureStepDescription: Mapped[Optional[str]] = mapped_column(String(64))
-    SmallestPixelValueInSeries: Mapped[Optional[float]] = mapped_column(Float(4))
-    SeriesNumber: Mapped[Optional[str]] = mapped_column(DICOMIntegerString(12))
-    SeriesType: Mapped[Optional[str]] = mapped_column(DICOMMultipleString(16))
-    Modality: Mapped[Optional[str]] = mapped_column(String(16))
-    SeriesDescription: Mapped[Optional[str]] = mapped_column(String(64))
-    OperatorsName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
-    SpatialResolution: Mapped[Optional[str]] = mapped_column(String(32))
-    BodyPartExamined: Mapped[Optional[str]] = mapped_column(String(16))
-    ProtocolName: Mapped[Optional[str]] = mapped_column(String(64))
+    BodyPartExamined: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(16))
+    SeriesDescription: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(64))
     PerformedProcedureStepStartTime: Mapped[Optional[str]] = mapped_column(DICOMTime())
-    PresentationIntentType: Mapped[Optional[str]] = mapped_column(String(16))
+    ProtocolName: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(64))
+    PresentationIntentType: Mapped[Optional[str]] = mapped_column(
+        DICOMFlattenedString(16)
+    )
+    SeriesType: Mapped[Optional[str]] = mapped_column(DICOMMultipleString(16))
+    SeriesTime: Mapped[Optional[str]] = mapped_column(DICOMTime())
+    SmallestPixelValueInSeries: Mapped[Optional[float]] = mapped_column(Float(4))
+    SpatialResolution: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(32))
+    SeriesDate: Mapped[Optional[str]] = mapped_column(DICOMDate())
+    PerformingPhysicianName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
+    OperatorsName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
     FrameOfReferenceUID: Mapped[Optional[str]] = mapped_column(DICOMUID(128))
-    AnatomicRegionSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
-    Laterality: Mapped[Optional[str]] = mapped_column(String(16))
-    PerformedProcedureStepStartDate: Mapped[Optional[str]] = mapped_column(DICOMDate())
 
     @classmethod
     def init_from_dataset(cls, dataset: Dataset):
@@ -141,32 +158,34 @@ class Instance(Base):
     path: Mapped[str] = mapped_column(String(512))
 
     # === DICOM fields ===
-    BitsAllocated: Mapped[Optional[float]] = mapped_column(Float(4))
-    ContentDescription: Mapped[Optional[str]] = mapped_column(String(64))
-    PresentationCreationDate: Mapped[Optional[str]] = mapped_column(DICOMDate())
-    InstitutionAddress: Mapped[Optional[str]] = mapped_column(String(1024))
     ContentTime: Mapped[Optional[str]] = mapped_column(DICOMTime())
-    TransferSyntaxUID: Mapped[Optional[str]] = mapped_column(DICOMUID(128))
-    ConceptNameCodeSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
-    InstanceNumber: Mapped[Optional[str]] = mapped_column(DICOMIntegerString(12))
-    ContentCreatorName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
-    ContentDate: Mapped[Optional[str]] = mapped_column(DICOMDate())
-    Rows: Mapped[Optional[float]] = mapped_column(Float(4))
-    TimeOfLastCalibration: Mapped[Optional[str]] = mapped_column(DICOMTime())
-    NumberOfFrames: Mapped[Optional[str]] = mapped_column(DICOMIntegerString(12))
-    SoftwareVersions: Mapped[Optional[str]] = mapped_column(DICOMMultipleString(64))
-    Columns: Mapped[Optional[float]] = mapped_column(Float(4))
+    StationName: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(16))
     DateOfLastCalibration: Mapped[Optional[str]] = mapped_column(DICOMDate())
-    PresentationCreationTime: Mapped[Optional[str]] = mapped_column(DICOMTime())
-    Manufacturer: Mapped[Optional[str]] = mapped_column(String(64))
-    ContentLabel: Mapped[Optional[str]] = mapped_column(String(16))
-    PixelPaddingValue: Mapped[Optional[float]] = mapped_column(Float(4))
-    SOPClassUID: Mapped[Optional[str]] = mapped_column(DICOMUID(128))
-    CorrectedImage: Mapped[Optional[str]] = mapped_column(DICOMMultipleString(16))
+    TransferSyntaxUID: Mapped[Optional[str]] = mapped_column(DICOMUID(128))
+    Rows: Mapped[Optional[float]] = mapped_column(Float(4))
+    Manufacturer: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(64))
+    ContentLabel: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(16))
     ObservationDateTime: Mapped[Optional[str]] = mapped_column(DICOMDateTime())
-    ManufacturerModelName: Mapped[Optional[str]] = mapped_column(String(64))
-    DeviceSerialNumber: Mapped[Optional[str]] = mapped_column(String(64))
-    StationName: Mapped[Optional[str]] = mapped_column(String(16))
+    ContentDate: Mapped[Optional[str]] = mapped_column(DICOMDate())
+    SOPClassUID: Mapped[Optional[str]] = mapped_column(DICOMUID(128))
+    PresentationCreationDate: Mapped[Optional[str]] = mapped_column(DICOMDate())
+    CorrectedImage: Mapped[Optional[str]] = mapped_column(DICOMMultipleString(16))
+    InstitutionAddress: Mapped[Optional[str]] = mapped_column(String(1024))
+    NumberOfFrames: Mapped[Optional[str]] = mapped_column(DICOMIntegerString(12))
+    DeviceSerialNumber: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(64))
+    TimeOfLastCalibration: Mapped[Optional[str]] = mapped_column(DICOMTime())
+    ContentDescription: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(64))
+    Columns: Mapped[Optional[float]] = mapped_column(Float(4))
+    ContentCreatorName: Mapped[Optional[str]] = mapped_column(DICOMName(192))
+    SoftwareVersions: Mapped[Optional[str]] = mapped_column(DICOMMultipleString(64))
+    BitsAllocated: Mapped[Optional[float]] = mapped_column(Float(4))
+    ManufacturerModelName: Mapped[Optional[str]] = mapped_column(
+        DICOMFlattenedString(64)
+    )
+    InstanceNumber: Mapped[Optional[str]] = mapped_column(DICOMIntegerString(12))
+    PresentationCreationTime: Mapped[Optional[str]] = mapped_column(DICOMTime())
+    PixelPaddingValue: Mapped[Optional[float]] = mapped_column(Float(4))
+    ConceptNameCodeSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
 
     @classmethod
     def init_from_dataset(cls, dataset: Dataset, path: str):

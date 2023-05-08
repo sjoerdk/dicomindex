@@ -14,6 +14,7 @@ from dicomindex.iterators import DICOMFilePerSeries
 from dicomindex.logs import get_module_logger
 from dicomindex.orm import Instance, Patient, Series, Study
 from dicomindex.persistence import SQLiteSession
+from dicomindex.statistics import PathStatuses, Statistics
 from dicomindex.threading import DICOMDatasetsThreaded, var_len_tqdm
 
 logger = get_module_logger("cli")
@@ -54,12 +55,14 @@ def index_func(index_file, base_folder):
         )
     with SQLiteSession(index_file) as session:
         index = DICOMIndex.init_from_session(session)
+        stats = Statistics()
         base_count = len(index.paths)
         logger.debug(f"Found {base_count} instances already in index")
 
         def path_iter():
             for path in base_folder.rglob("*"):
                 if str(path) in index.paths or not path.is_file():
+                    stats.add(path, PathStatuses.SKIPPED_ALREADY_VISITED)
                     logger.debug(f"skipping {path}")
                     continue  # skip this path
                 else:
@@ -67,11 +70,13 @@ def index_func(index_file, base_folder):
 
         # progress bar added with var_len_tqdm
         for ds in var_len_tqdm(DICOMDatasetsThreaded(path_iter())):
+            stats.add(ds.filename, PathStatuses.PROCESSED)
             to_add = index.create_new_db_objects(ds, ds.filename)
             session.add_all(to_add)
             session.commit()
 
     logger.info("Finished")
+    logger.info(stats.summary())
 
 
 @click.command(name="index_structured")
@@ -103,9 +108,9 @@ def index_structured_func(index_file, base_folder):
     logger.info("Finished")
 
 
-@click.command()
+@click.command(name="stats")
 @click.argument("index_file", type=ClickPath(exists=True))
-def stats(index_file):
+def stats_func(index_file):
     """What is in the given index file?"""
 
     logger.debug(f"Loading '{index_file}'")
@@ -123,4 +128,4 @@ def stats(index_file):
 
 main.add_command(index_func)
 main.add_command(index_structured_func)
-main.add_command(stats)
+main.add_command(stats_func)
