@@ -194,3 +194,11 @@ class Instance(Base):
         param_dict = {tag: dataset.get(tag) for tag in fields_to_transfer}
         param_dict["path"] = path
         return cls(**param_dict)
+
+
+class DICOMFileDuplicate(Base):
+    """For storing files that share a SOPInstanceUID with another file"""
+
+    __tablename__ = "duplicate_file"
+    path: Mapped[str] = mapped_column(String(512), primary_key=True)
+    SOPInstanceUID: Mapped[str] = mapped_column()

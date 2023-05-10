@@ -8,7 +8,7 @@ from pydicom import Dataset
 
 from dicomindex.iterators import AllFiles
 from dicomindex.logs import get_module_logger
-from dicomindex.orm import Instance, Patient, Series, Study
+from dicomindex.orm import DICOMFileDuplicate, Instance, Patient, Series, Study
 from dicomindex.statistics import PathStatuses, Statistics
 from dicomindex.threading import DICOMDatasetsThreaded, var_len_tqdm
 
@@ -36,6 +36,7 @@ def index_folder(base_folder, session, use_progress_bar=False):
     ds_generator = DICOMDatasetsThreaded(path_iter())
     if use_progress_bar:
         ds_generator = var_len_tqdm(ds_generator)
+
     for ds in ds_generator:
         stats.add(ds.filename, PathStatuses.PROCESSED)
         to_add = index.create_new_db_objects(ds, ds.filename)
@@ -74,12 +75,19 @@ class DICOMIndex:
             study_uids={pid for pid, in session.query(Study.StudyInstanceUID)},
             series_uids={pid for pid, in session.query(Series.SeriesInstanceUID)},
             instance_uids={pid for pid, in session.query(Instance.SOPInstanceUID)},
-            paths={path for path, in session.query(Instance.path)},
+            paths={path for path, in session.query(Instance.path)}
+            | {path for path, in session.query(DICOMFileDuplicate.path)},
         )
 
     def create_new_db_objects(self, dataset: Dataset, path: str):
         """Create patient/study/series/instance objects from dataset, ignore existing
 
+        Notes
+        -----
+        Any file with previously seen SOPInstanceUID will be stored as duplicate
+        and further processing will be skipped. This means any patient/study/series
+        information in such a file is not recorded. Having duplicate SOPInstanceUIDs
+        in an archive should never happen, but does.
 
         Parameters
         ----------
@@ -94,24 +102,35 @@ class DICOMIndex:
             Patient/Study/Series/Instance objects for ids that have not been
 
         """
-        db_objects = []
+        path = str(path)  # handle Path type input
+
+        if dataset.SOPInstanceUID in self.instance_uids:
+            logger.debug(
+                f"SOPInstanceUID in '{path}' already exists. This is a"
+                f" duplicate file. Storing in duplicate instances"
+            )
+            self.paths.add(path)
+            return [
+                DICOMFileDuplicate(path=path, SOPInstanceUID=dataset.SOPInstanceUID)
+            ]
+
+        db_objects = [Instance.init_from_dataset(dataset, path)]
+
         if dataset.PatientID not in self.patient_ids:
             db_objects.append(Patient.init_from_dataset(dataset))
         if dataset.StudyInstanceUID not in self.study_uids:
             db_objects.append(Study.init_from_dataset(dataset))
         if dataset.SeriesInstanceUID not in self.series_uids:
             db_objects.append(Series.init_from_dataset(dataset))
-        if dataset.SOPInstanceUID not in self.instance_uids:
-            db_objects.append(Instance.init_from_dataset(dataset, path))
 
-        logger.debug(f"Added {len(db_objects)} db objects for {path}")
-        self.add_to_index(dataset, path)
+        self.add_to_index(dataset)
+        self.paths.add(path)
+        logger.debug(f"Created {len(db_objects)} db objects for {path}")
         return db_objects
 
-    def add_to_index(self, dataset, path):
+    def add_to_index(self, dataset):
         """Add patient/study/series/instance ids to index"""
         self.patient_ids.add(dataset.PatientID)
         self.study_uids.add(dataset.StudyInstanceUID)
         self.series_uids.add(dataset.SeriesInstanceUID)
         self.instance_uids.add(dataset.SOPInstanceUID)
-        self.paths.add(path)

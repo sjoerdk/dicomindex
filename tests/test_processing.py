@@ -1,3 +1,6 @@
+from dicomgenerator.export import export
+from dicomgenerator.templates import CTDatasetFactory
+
 from dicomindex.core import read_dicom_file
 from dicomindex.processing import DICOMIndex
 from dicomindex.iterators import AllDICOMFiles
@@ -80,3 +83,25 @@ def test_folder_iterator_skip_existing_instances(example_dicom_folder, a_db_file
 
         assert len(new_files) == 9
         #  5 should have been skipped
+
+
+def test_index_duplicate_files(tmp_path, a_mem_db_session):
+    """Handle multiple files with identical SOPInstanceUIDs"""
+
+    # a folder with two files with the same SOPInstanceUID
+    export(dataset=CTDatasetFactory(SOPInstanceUID="111"), path=tmp_path / "file1")
+    export(dataset=CTDatasetFactory(SOPInstanceUID="111"), path=tmp_path / "file2")
+    export(dataset=CTDatasetFactory(SOPInstanceUID="222"), path=tmp_path / "file3")
+
+    index = DICOMIndex.init_from_session(a_mem_db_session)
+    for file in tmp_path.glob("*"):
+        a_mem_db_session.add_all(
+            index.create_new_db_objects(read_dicom_file(file), file)
+        )
+        a_mem_db_session.commit()
+
+    assert len(index.paths) == 3
+    assert len(index.instance_uids) == 2
+
+    new_index = DICOMIndex.init_from_session(a_mem_db_session)
+    assert len(new_index.paths) == 3
