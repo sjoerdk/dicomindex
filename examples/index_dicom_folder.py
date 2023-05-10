@@ -6,8 +6,7 @@ folder
 from dicomindex.core import read_dicom_file
 from dicomindex.processing import DICOMIndex
 from dicomindex.iterators import AllDICOMFiles
-from dicomindex.persistence import SQLiteSession
-
+from tests.test_processing import SQLiteSession
 
 index_file = "/tmp/archive.sql"
 folder_to_index = "/folder/with/dicom"

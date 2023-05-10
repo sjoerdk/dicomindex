@@ -1,5 +1,5 @@
 from dicomindex.orm import Patient, Study
-from dicomindex.persistence import SQLiteSession
+from tests.test_processing import SQLiteSession
 
 
 def test_write_db(a_db_file):

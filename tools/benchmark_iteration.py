@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 from dicomindex.core import read_dicom_file
 from dicomindex.iterators import AllDICOMDatasets, AllDICOMFiles
-from dicomindex.threading import AllDICOMDatasetsThreaded, var_len_tqdm
+from dicomindex.threading import AllDICOMDatasetsOpener, var_len_tqdm
 
 folder_to_index = environ.get("FOLDER")
 
@@ -31,4 +31,4 @@ print("Find all files, then just read dicom and catch exceptions if not dicom")
 run_test(AllDICOMDatasets(folder_to_index))
 
 print("Use multithreading")
-run_test(AllDICOMDatasetsThreaded(folder_to_index), tqdm_func=var_len_tqdm)
+run_test(AllDICOMDatasetsOpener(folder_to_index), tqdm_func=var_len_tqdm)

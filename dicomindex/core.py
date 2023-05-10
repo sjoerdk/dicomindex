@@ -1,7 +1,7 @@
 import pydicom
 from pydicom.errors import InvalidDicomError
 
-from dicomindex.exceptions import DICOMIndexError
+from dicomindex.exceptions import NotDICOMError
 
 
 def read_dicom_file(path):
@@ -23,4 +23,4 @@ def read_dicom_file(path):
     try:
         return pydicom.filereader.dcmread(str(path), stop_before_pixels=True)
     except InvalidDicomError as e:
-        raise DICOMIndexError(e) from e
+        raise NotDICOMError(e) from e

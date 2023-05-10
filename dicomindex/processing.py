@@ -6,11 +6,12 @@ from typing import Set
 
 from pydicom import Dataset
 
+from dicomindex.exceptions import NotDICOMError
 from dicomindex.iterators import AllFiles
 from dicomindex.logs import get_module_logger
 from dicomindex.orm import DICOMFileDuplicate, Instance, Patient, Series, Study
 from dicomindex.statistics import PathStatuses, Statistics
-from dicomindex.threading import DICOMDatasetsThreaded, var_len_tqdm
+from dicomindex.threading import DICOMDatasetOpener, var_len_tqdm
 
 logger = get_module_logger("processing")
 
@@ -33,11 +34,17 @@ def index_folder(base_folder, session, use_progress_bar=False):
                 yield path
 
     # progress bar added with var_len_tqdm
-    ds_generator = DICOMDatasetsThreaded(path_iter())
+    ds_generator = DICOMDatasetOpener(path_iter())
     if use_progress_bar:
         ds_generator = var_len_tqdm(ds_generator)
 
-    for ds in ds_generator:
+    for future in ds_generator:
+        try:
+            ds = future.result()
+        except NotDICOMError:
+            # TODO add to opened non-dicom files
+            continue
+
         stats.add(ds.filename, PathStatuses.PROCESSED)
         to_add = index.create_new_db_objects(ds, ds.filename)
         session.add_all(to_add)

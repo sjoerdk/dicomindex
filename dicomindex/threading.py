@@ -2,10 +2,9 @@
 
 Dicomindex needs to index DICOM after all. Best do it fast.
 """
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps
 from multiprocessing import Process, Queue
-from multiprocessing.pool import ThreadPool
 from pathlib import Path
 from queue import Empty
 from typing import Any, Callable, Iterable
@@ -13,7 +12,7 @@ from typing import Any, Callable, Iterable
 from tqdm import tqdm
 
 from dicomindex.core import read_dicom_file
-from dicomindex.exceptions import DICOMIndexError
+from dicomindex.exceptions import NotDICOMError
 from dicomindex.logs import get_module_logger
 
 logger = get_module_logger("threading")
@@ -22,15 +21,15 @@ logger = get_module_logger("threading")
 class WorkerMessages:
     """Messages threads and processes can return instead of result values"""
 
-    NOT_DICOM = "NOT_DICOM"
     FINISHED = "FINISHED"
 
 
-def open_dataset(path):
+def open_file(path):
     try:
         return read_dicom_file(path)
-    except DICOMIndexError:
-        return WorkerMessages.NOT_DICOM
+    except NotDICOMError as e:
+        e.path = path  # for bookkeeping
+        raise e
 
 
 class EagerIterator:
@@ -40,6 +39,12 @@ class EagerIterator:
     Created of Path.rglob() which might take a long time to complete, does not
     take too much memory to deplete, and is quite useful to know the length of
     (how many files do I still need to process)
+
+    Usage
+    -----
+    Designed as closure:
+    >>> for item in EagerIterator():
+    >>>    print(item)
     """
 
     def __init__(self, iterator, timeout=10):
@@ -136,31 +141,26 @@ class FileProcessor:
         self, path_generator: Iterable[str], process_function: Callable[[str], Any]
     ):
         """Map the paths coming from path_generator to process_function"""
-        self.loaded = 0
+        self.pre_fetched = 0
         self.generator = None
         self.path_generator = path_generator
         self.process_function = process_function
 
     def _init_generator(self):
-
         # start eagerly loading path generator
         with EagerIterator(self.path_generator) as paths:
-
             # create and load workers
-            with ThreadPool() as pool:
+            with ThreadPoolExecutor() as executor:
 
-                def counting_iterator(iterator):
-                    """For having a running updatable total"""
-                    for x in iterator:
-                        self.loaded = len(iterator)
-                        yield x
+                def future_creator():
+                    """Creates futures from path as they are requested
+                    Also updates number of pre-fetched paths for nice progress bar
+                    """
+                    for path in paths:
+                        self.pre_fetched = len(paths)
+                        yield executor.submit(self.process_function, path)
 
-                logger.debug("mapping input iter to thread pool")
-                yield from pool.imap_unordered(
-                    self.process_function, counting_iterator(paths)
-                )
-
-                logger.debug("finished. Exiting thread pool")
+                yield from as_completed(future_creator())
 
     def __next__(self):
         if not self.generator:
@@ -168,7 +168,7 @@ class FileProcessor:
         return next(self.generator)
 
     def __len__(self):
-        return self.loaded
+        return self.pre_fetched
 
     def __iter__(self):
         return self
@@ -188,38 +188,26 @@ def var_len_tqdm(iterable, **kwargs):
     return iter(wrapped_iterable())
 
 
-class DICOMDatasetsThreaded:
+class DICOMDatasetOpener:
     def __init__(self, path_iter):
-        """Read Dataset for each path in path_iter"""
+        """Returns completed Future for each path in path_iter"""
         self.path_iter = path_iter
-        self.not_ds_skipped = 0
-        self.ds_returned = 0
         self.generator = None
 
     def _init_generator(self):
-        return FileProcessor(
-            path_generator=self.path_iter, process_function=open_dataset
-        )
+        return FileProcessor(path_generator=self.path_iter, process_function=open_file)
 
     def __len__(self):
-        return len(self.generator) - self.not_ds_skipped
+        return len(self.generator)
 
     def __iter__(self):
         if not self.generator:
             self.generator = self._init_generator()
 
-        self.not_ds_skipped = 0
-        self.ds_returned = 0
-        for result in self.generator:
-            if result == WorkerMessages.NOT_DICOM:
-                self.not_ds_skipped += 1
-                continue
-            else:
-                self.ds_returned += 1
-                yield result
+        yield from self.generator
 
 
-class AllDICOMDatasetsThreaded(DICOMDatasetsThreaded):
+class AllDICOMDatasetsOpener(DICOMDatasetOpener):
     def __init__(self, path):
         """Dataset for each DICOM file in path recursively
 

@@ -7,7 +7,7 @@ from pathlib import Path
 from dicomgenerator.export import export
 from dicomgenerator.templates import CTDatasetFactory
 
-from dicomindex.persistence import SQLiteSession
+from tests.test_processing import SQLiteSession
 from tests.conftest import generate_full_stack_patient, set_factory_db_session
 
 
