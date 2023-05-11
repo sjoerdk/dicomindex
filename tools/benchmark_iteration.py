@@ -7,7 +7,7 @@ from dicomindex.core import read_dicom_file
 from dicomindex.iterators import AllDICOMDatasets, AllDICOMFiles
 from dicomindex.threading import AllDICOMDatasetsOpener, var_len_tqdm
 
-folder_to_index = environ.get("FOLDER")
+folder_to_index = environ["FOLDER"]
 
 
 def run_test(iterator, tqdm_func=tqdm):

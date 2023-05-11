@@ -202,3 +202,10 @@ class DICOMFileDuplicate(Base):
     __tablename__ = "duplicate_file"
     path: Mapped[str] = mapped_column(String(512), primary_key=True)
     SOPInstanceUID: Mapped[str] = mapped_column()
+
+
+class NonDICOMFile(Base):
+    """For skipping previously visited files"""
+
+    __tablename__ = "non_dicom_file"
+    path: Mapped[str] = mapped_column(String(512), primary_key=True)

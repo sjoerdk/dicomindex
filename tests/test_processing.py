@@ -4,8 +4,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from dicomindex.core import read_dicom_file
-from dicomindex.processing import DICOMIndex
-from dicomindex.iterators import AllDICOMFiles
+from dicomindex.processing import DICOMIndex, index_folder
+from dicomindex.iterators import AllDICOMFiles, AllFiles
 from dicomindex.orm import Base, Instance, Patient
 from tests.conftest import generate_full_stack_patient
 
@@ -106,6 +106,28 @@ def test_index_duplicate_files(tmp_path, a_mem_db_session):
 
     new_index = DICOMIndex.init_from_session(a_mem_db_session)
     assert len(new_index.paths) == 3
+
+
+def test_index_folder(example_dicom_folder, a_db_file):
+
+    with open(example_dicom_folder / "patient1" / "non_dicom.txt", "w") as f:
+        f.write("No dicom content!")
+
+    assert len(list(AllFiles(example_dicom_folder))) == 15
+
+    with SQLiteSession(a_db_file) as session:
+        stats = index_folder(example_dicom_folder, session)
+
+    assert len(stats.processed()) == 14
+    assert len(stats.skipped_non_dicom()) == 1
+
+    with open(example_dicom_folder / "patient1" / "non_dicom2.txt", "w") as f:
+        f.write("No dicom content!")
+
+    stats2 = index_folder(example_dicom_folder, session)
+    assert len(stats2.processed()) == 0
+    assert len(stats2.skipped_non_dicom()) == 1
+    assert len(stats2.skipped_visited()) == 15
 
 
 class SQLiteSession:

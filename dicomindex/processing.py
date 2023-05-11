@@ -9,7 +9,14 @@ from pydicom import Dataset
 from dicomindex.exceptions import NotDICOMError
 from dicomindex.iterators import AllFiles
 from dicomindex.logs import get_module_logger
-from dicomindex.orm import DICOMFileDuplicate, Instance, Patient, Series, Study
+from dicomindex.orm import (
+    DICOMFileDuplicate,
+    Instance,
+    NonDICOMFile,
+    Patient,
+    Series,
+    Study,
+)
 from dicomindex.statistics import PathStatuses, Statistics
 from dicomindex.threading import DICOMDatasetOpener, var_len_tqdm
 
@@ -22,13 +29,13 @@ def index_folder(base_folder, session, use_progress_bar=False):
     use_progress_bar=True will show a progress bar at stdout using tqdm
     """
     index = DICOMIndex.init_from_session(session)
-    stats = Statistics()
+    statistics = Statistics()
     logger.debug(f"Found {len(index.paths)} instances already in index")
 
     def path_iter():
         for path in AllFiles(base_folder):
-            if str(path) in index.paths or not path.is_file():
-                stats.add(path, PathStatuses.SKIPPED_ALREADY_VISITED)
+            if str(path) in index.paths:
+                statistics.add(path, PathStatuses.SKIPPED_ALREADY_VISITED)
                 continue  # skip this path
             else:
                 yield path
@@ -41,15 +48,18 @@ def index_folder(base_folder, session, use_progress_bar=False):
     for future in ds_generator:
         try:
             ds = future.result()
-        except NotDICOMError:
-            # TODO add to opened non-dicom files
+        except NotDICOMError as e:
+            session.add(NonDICOMFile(path=str(e.path)))
+            statistics.add(e.path, PathStatuses.SKIPPED_NON_DICOM)
+            session.commit()
             continue
+        else:
+            statistics.add(ds.filename, PathStatuses.PROCESSED)
+            to_add = index.create_new_db_objects(ds, ds.filename)
+            session.add_all(to_add)
+            session.commit()
 
-        stats.add(ds.filename, PathStatuses.PROCESSED)
-        to_add = index.create_new_db_objects(ds, ds.filename)
-        session.add_all(to_add)
-        session.commit()
-    return stats
+    return statistics
 
 
 class DICOMIndex:
@@ -83,7 +93,8 @@ class DICOMIndex:
             series_uids={pid for pid, in session.query(Series.SeriesInstanceUID)},
             instance_uids={pid for pid, in session.query(Instance.SOPInstanceUID)},
             paths={path for path, in session.query(Instance.path)}
-            | {path for path, in session.query(DICOMFileDuplicate.path)},
+            | {path for path, in session.query(DICOMFileDuplicate.path)}
+            | {path for path, in session.query(NonDICOMFile.path)},
         )
 
     def create_new_db_objects(self, dataset: Dataset, path: str):

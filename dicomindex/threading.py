@@ -5,7 +5,6 @@ Dicomindex needs to index DICOM after all. Best do it fast.
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps
 from multiprocessing import Process, Queue
-from pathlib import Path
 from queue import Empty
 from typing import Any, Callable, Iterable
 
@@ -13,6 +12,7 @@ from tqdm import tqdm
 
 from dicomindex.core import read_dicom_file
 from dicomindex.exceptions import NotDICOMError
+from dicomindex.iterators import AllFiles
 from dicomindex.logs import get_module_logger
 
 logger = get_module_logger("threading")
@@ -140,7 +140,13 @@ class FileProcessor:
     def __init__(
         self, path_generator: Iterable[str], process_function: Callable[[str], Any]
     ):
-        """Map the paths coming from path_generator to process_function"""
+        """Map the paths coming from path_generator to process_function
+
+        Parameters
+        ----------
+        path_generator
+        process_function
+        """
         self.pre_fetched = 0
         self.generator = None
         self.path_generator = path_generator
@@ -215,6 +221,4 @@ class AllDICOMDatasetsOpener(DICOMDatasetOpener):
         then opening each file, because AllDICOMFiles does a (partial) read already.
         The reads are the expensive part.
         """
-        super().__init__(
-            path_iter=iter(x for x in Path(path).rglob("*") if x.is_file())
-        )
+        super().__init__(path_iter=AllFiles(path))
