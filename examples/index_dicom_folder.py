@@ -2,21 +2,18 @@
 Read 1 dicom file inside each series to index all patients/studies/series in the
 folder
 """
+from os import environ
+
+from tqdm import tqdm
 
 from dicomindex.core import read_dicom_file
-from dicomindex.processing import DICOMIndex
+from dicomindex.processing import DICOMIndex, index_folder
 from dicomindex.iterators import AllDICOMFiles
 from tests.test_processing import SQLiteSession
 
 index_file = "/tmp/archive.sql"
-folder_to_index = "/folder/with/dicom"
+folder_to_index = environ["FOLDER"]
 
-with SQLiteSession("/tmp/archive2.sql") as session:
-    index = DICOMIndex.init_from_session(session)
-    for count, file in enumerate(AllDICOMFiles(folder_to_index)):
-        if count > 1:
-            break
-        to_add = index.create_new_db_objects(read_dicom_file(file), str(file))
-
-        session.add_all(to_add)
-        print(f"{count} - {file}")
+with SQLiteSession(index_file) as session:
+    with tqdm(total=1) as pbar:
+        index_folder(base_folder=folder_to_index, session=session, progress_bar=pbar)

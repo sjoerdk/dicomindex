@@ -32,12 +32,16 @@ class Statistics:
     def processed(self):
         return [x for x in self.status_list if x.status == PathStatuses.PROCESSED]
 
-    def skipped_visited(self):
-        return [
-            x
+    def skipped(self):
+        return [ x
             for x in self.status_list
-            if x.status == PathStatuses.SKIPPED_ALREADY_VISITED
+            if x.status in (PathStatuses.SKIPPED_ALREADY_VISITED,
+                            PathStatuses.SKIPPED_FAILED, PathStatuses.SKIPPED_NON_DICOM)
         ]
+
+    def skipped_visited(self):
+        return [x for x in self.status_list if
+            x.status == PathStatuses.SKIPPED_ALREADY_VISITED]
 
     def visited(self):
         return self.status_list
@@ -45,7 +49,8 @@ class Statistics:
     def summary(self):
         return (
             f"Visited {len(self.visited())}, processed {len(self.processed())},"
-            f" skipped {len(self.skipped_visited()) + len(self.skipped_failed())} "
-            f"(already visited/failed: {len(self.skipped_visited())}/"
+            f" skipped {len(self.skipped())} "
+            f"(already-visited/non-dicom/failed: {len(self.skipped_visited())}/"
+            f"{len(self.skipped_non_dicom())}/"
             f"{len(self.skipped_failed())})"
         )

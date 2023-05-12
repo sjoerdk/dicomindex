@@ -2,10 +2,13 @@
 
 Ties together modules
 """
-from typing import Set
+from pathlib import Path
+from typing import Optional, Set
 
 from pydicom import Dataset
+from tqdm import tqdm
 
+from dicomindex.core import read_dicom_file
 from dicomindex.exceptions import NotDICOMError
 from dicomindex.iterators import AllFiles
 from dicomindex.logs import get_module_logger
@@ -18,46 +21,47 @@ from dicomindex.orm import (
     Study,
 )
 from dicomindex.statistics import PathStatuses, Statistics
-from dicomindex.threading import DICOMDatasetOpener, var_len_tqdm
+from dicomindex.threading import EagerIterator, var_len_tqdm
 
 logger = get_module_logger("processing")
 
 
-def index_folder(base_folder, session, use_progress_bar=False):
+def index_folder(base_folder, session, progress_bar: Optional[tqdm] = None):
     """Iterate over all files in base folder, add them to session
 
-    use_progress_bar=True will show a progress bar at stdout using tqdm
+    progress bar is a tqdm progress bar object
     """
     index = DICOMIndex.init_from_session(session)
     statistics = Statistics()
     logger.debug(f"Found {len(index.paths)} instances already in index")
 
-    def path_iter():
-        for path in AllFiles(base_folder):
-            if str(path) in index.paths:
+    def update_progress(paths_in, stats):
+        if progress_bar:
+            progress_bar.total = len(paths_in)
+            progress_bar.update()
+            progress_bar.set_postfix_str(stats.summary())
+
+    with EagerIterator(AllFiles(base_folder)) as paths:
+        for path in paths:
+            path = str(path)
+            if path in index.paths:
                 statistics.add(path, PathStatuses.SKIPPED_ALREADY_VISITED)
-                continue  # skip this path
-            else:
-                yield path
-
-    # progress bar added with var_len_tqdm
-    ds_generator = DICOMDatasetOpener(path_iter())
-    if use_progress_bar:
-        ds_generator = var_len_tqdm(ds_generator)
-
-    for future in ds_generator:
-        try:
-            ds = future.result()
-        except NotDICOMError as e:
-            session.add(NonDICOMFile(path=str(e.path)))
-            statistics.add(e.path, PathStatuses.SKIPPED_NON_DICOM)
-            session.commit()
-            continue
-        else:
+                update_progress(paths, statistics)
+                continue  # skip this
+            try:
+                ds = read_dicom_file(path)
+            except NotDICOMError:
+                statistics.add(path, PathStatuses.SKIPPED_NON_DICOM)
+                index.paths.add(Path(path))
+                session.add(NonDICOMFile(path=path))
+                session.commit()
+                update_progress(paths, statistics)
+                continue
             statistics.add(ds.filename, PathStatuses.PROCESSED)
-            to_add = index.create_new_db_objects(ds, ds.filename)
+            to_add = index.create_new_db_objects(ds, path)
             session.add_all(to_add)
             session.commit()
+            update_progress(paths, statistics)
 
     return statistics
 
