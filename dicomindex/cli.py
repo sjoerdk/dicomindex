@@ -4,12 +4,20 @@ from pathlib import Path
 import click
 from click import Path as ClickPath
 from tabulate import tabulate  # type: ignore
+from tqdm import tqdm
 
 from dicomindex.persistence import SQLiteSession
 from dicomindex.processing import index_folder
 
 from dicomindex.logs import get_module_logger
-from dicomindex.orm import Instance, Patient, Series, Study
+from dicomindex.orm import (
+    DICOMFileDuplicate,
+    Instance,
+    NonDICOMFile,
+    Patient,
+    Series,
+    Study,
+)
 
 logger = get_module_logger("cli")
 
@@ -49,7 +57,8 @@ def index_func(index_file, base_folder):
         )
 
     with SQLiteSession(index_file) as session:
-        stats = index_folder(base_folder, session, use_progress_bar=True)
+        with tqdm(total=1) as pbar:
+            stats = index_folder(base_folder, session, progress_bar=pbar)
 
     logger.info("Finished")
     logger.info(stats.summary())
@@ -68,6 +77,8 @@ def stats_func(index_file):
             "Studies": [session.query(Study).count()],
             "Series": [session.query(Series).count()],
             "Instances:": [session.query(Instance).count()],
+            "Duplicates:": [session.query(DICOMFileDuplicate).count()],
+            "Non_dicom:": [session.query(NonDICOMFile).count()],
         }
 
         print(tabulate(table, headers="keys", tablefmt="simple"))
