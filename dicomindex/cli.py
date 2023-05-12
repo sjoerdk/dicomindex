@@ -5,11 +5,11 @@ import click
 from click import Path as ClickPath
 from tabulate import tabulate  # type: ignore
 
+from dicomindex.persistence import SQLiteSession
 from dicomindex.processing import index_folder
 
 from dicomindex.logs import get_module_logger
 from dicomindex.orm import Instance, Patient, Series, Study
-from tests.test_processing import SQLiteSession
 
 logger = get_module_logger("cli")
 

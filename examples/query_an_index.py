@@ -1,7 +1,7 @@
 """Inspect a created index"""
 
 from dicomindex.orm import Study
-from tests.test_processing import SQLiteSession
+from dicomindex.persistence import SQLiteSession
 
 index_file = "/tmp/archive.sql"
 

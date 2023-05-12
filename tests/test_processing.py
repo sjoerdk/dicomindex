@@ -1,12 +1,11 @@
 from dicomgenerator.export import export
 from dicomgenerator.templates import CTDatasetFactory
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
 
 from dicomindex.core import read_dicom_file
+from dicomindex.persistence import SQLiteSession
 from dicomindex.processing import DICOMIndex, index_folder
 from dicomindex.iterators import AllDICOMFiles, AllFiles
-from dicomindex.orm import Base, Instance, Patient
+from dicomindex.orm import Instance, Patient
 from tests.conftest import generate_full_stack_patient
 
 
@@ -128,29 +127,3 @@ def test_index_folder(example_dicom_folder, a_db_file):
     assert len(stats2.processed()) == 0
     assert len(stats2.skipped_non_dicom()) == 1
     assert len(stats2.skipped_visited()) == 15
-
-
-class SQLiteSession:
-    """A database session on a sqlite file
-
-    Examples
-    --------
-    with SQLiteSession('my_file.sql') as session:
-        session.do_things()
-
-    # closes after leaving closure
-    """
-
-    def __init__(self, db_path):
-        self.db_path = db_path
-        self.session = None
-
-    def __enter__(self):
-        engine = create_engine(f"sqlite:///{self.db_path}", echo=False)
-        Base.metadata.create_all(engine, checkfirst=True)  # Create if needed
-        self.session = Session(engine)
-        return self.session
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.session:
-            self.session.close()
