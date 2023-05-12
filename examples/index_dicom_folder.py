@@ -6,9 +6,7 @@ from os import environ
 
 from tqdm import tqdm
 
-from dicomindex.core import read_dicom_file
-from dicomindex.processing import DICOMIndex, index_folder
-from dicomindex.iterators import AllDICOMFiles
+from dicomindex.processing import index_folder
 from tests.test_processing import SQLiteSession
 
 index_file = "/tmp/archive.sql"

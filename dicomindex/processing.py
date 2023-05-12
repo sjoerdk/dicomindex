@@ -21,7 +21,7 @@ from dicomindex.orm import (
     Study,
 )
 from dicomindex.statistics import PathStatuses, Statistics
-from dicomindex.threading import EagerIterator, var_len_tqdm
+from dicomindex.threading import EagerIterator
 
 logger = get_module_logger("processing")
 

@@ -3,28 +3,18 @@
 Dicomindex needs to index DICOM after all. Best do it fast.
 """
 from collections import namedtuple
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from functools import wraps
 from multiprocessing import Process, Queue
 from queue import Empty
-from typing import Any, Callable, Iterable, Optional, Set
 
-from tqdm import tqdm
-
-from dicomindex.core import read_dicom_file
-from dicomindex.exceptions import NotDICOMError
-from dicomindex.iterators import AllFiles
 from dicomindex.logs import get_module_logger
 
 logger = get_module_logger("threading")
 
 
-EagerIteratorStatus = namedtuple("EagerIteratorStatus", ['visited',
-                                                         'has_finished'])
+EagerIteratorStatus = namedtuple("EagerIteratorStatus", ["visited", "has_finished"])
 
 
 class EagerIterator:
-
     def __init__(self, iterator):
         """Iterator with a length which is updated by iterating in separate process
            length indicates the number of items in iterator
@@ -49,8 +39,9 @@ class EagerIterator:
         self.iterator = iterator
         self.generator = None
         self.process = None
-        self.process_status: EagerIteratorStatus = \
-            EagerIteratorStatus(visited=0, has_finished=False)
+        self.process_status: EagerIteratorStatus = EagerIteratorStatus(
+            visited=0, has_finished=False
+        )
 
         self.value_queue = Queue()
         self.message_queue = Queue()
@@ -106,25 +97,8 @@ class EagerIterator:
         quickly as possible without having to wait for depletion.
         """
         visited = 0
-        for count, item in enumerate(iterator, start=1):
+        for item in iterator:
             visited += 1
             value_queue.put(item)
-            message_queue.put(EagerIteratorStatus(visited=visited,
-                                                  has_finished=False))
-        message_queue.put(
-            EagerIteratorStatus(visited=visited, has_finished=True))
-
-
-
-def var_len_tqdm(iterable, **kwargs):
-    """Prints tqdm progress bar, but allows for iterable with changing length"""
-
-    @wraps(iterable)
-    def wrapped_iterable():
-        with tqdm(total=1, **kwargs) as pbar:
-            for x in iterable:
-                pbar.total = len(iterable)
-                pbar.update()
-                yield x
-
-    return iter(wrapped_iterable())
+            message_queue.put(EagerIteratorStatus(visited=visited, has_finished=False))
+        message_queue.put(EagerIteratorStatus(visited=visited, has_finished=True))

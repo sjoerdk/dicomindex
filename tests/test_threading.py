@@ -15,5 +15,3 @@ def test_eager_iterator_context():
         items = [x for x in iterator]
         assert len(iterator) == 100
         assert len(items) == 100
-
-

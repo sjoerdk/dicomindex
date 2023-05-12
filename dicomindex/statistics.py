@@ -33,15 +33,23 @@ class Statistics:
         return [x for x in self.status_list if x.status == PathStatuses.PROCESSED]
 
     def skipped(self):
-        return [ x
+        return [
+            x
             for x in self.status_list
-            if x.status in (PathStatuses.SKIPPED_ALREADY_VISITED,
-                            PathStatuses.SKIPPED_FAILED, PathStatuses.SKIPPED_NON_DICOM)
+            if x.status
+            in (
+                PathStatuses.SKIPPED_ALREADY_VISITED,
+                PathStatuses.SKIPPED_FAILED,
+                PathStatuses.SKIPPED_NON_DICOM,
+            )
         ]
 
     def skipped_visited(self):
-        return [x for x in self.status_list if
-            x.status == PathStatuses.SKIPPED_ALREADY_VISITED]
+        return [
+            x
+            for x in self.status_list
+            if x.status == PathStatuses.SKIPPED_ALREADY_VISITED
+        ]
 
     def visited(self):
         return self.status_list
