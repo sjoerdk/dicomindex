@@ -10,7 +10,7 @@ from sqlalchemy.exc import StatementError
 from tqdm import tqdm
 
 from dicomindex.core import read_dicom_file
-from dicomindex.exceptions import DICOMIndexError, NotDICOMError
+from dicomindex.exceptions import NotDICOMError
 from dicomindex.iterators import AllFiles
 from dicomindex.logs import get_module_logger
 from dicomindex.orm import (
@@ -64,7 +64,14 @@ def index_folder(base_folder, session, progress_bar: Optional[tqdm] = None):
             try:
                 session.commit()
             except StatementError as e:
-                raise DICOMIndexError(f"Error processing {path}") from e
+                session.rollback()
+                # Skip error, continue
+                logger.exception(e)
+                logger.error(f"Error processing {path}. skipping")
+                statistics.add(path, PathStatuses.SKIPPED_FAILED)
+                update_progress(paths, statistics)
+                continue
+
             update_progress(paths, statistics)
 
     return statistics
