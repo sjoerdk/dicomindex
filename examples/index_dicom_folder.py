@@ -2,6 +2,7 @@
 Read 1 dicom file inside each series to index all patients/studies/series in the
 folder
 """
+import logging
 from os import environ
 
 from tqdm import tqdm
@@ -11,6 +12,9 @@ from dicomindex.persistence import SQLiteSession
 
 index_file = "/tmp/archive.sql"
 folder_to_index = environ["FOLDER"]
+
+logging.basicConfig(level=logging.DEBUG)
+
 
 with SQLiteSession(index_file) as session:
     with tqdm(total=1) as pbar:

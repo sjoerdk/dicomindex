@@ -6,10 +6,11 @@ from pathlib import Path
 from typing import Optional, Set
 
 from pydicom import Dataset
+from sqlalchemy.exc import StatementError
 from tqdm import tqdm
 
 from dicomindex.core import read_dicom_file
-from dicomindex.exceptions import NotDICOMError
+from dicomindex.exceptions import DICOMIndexError, NotDICOMError
 from dicomindex.iterators import AllFiles
 from dicomindex.logs import get_module_logger
 from dicomindex.orm import (
@@ -57,10 +58,13 @@ def index_folder(base_folder, session, progress_bar: Optional[tqdm] = None):
                 session.commit()
                 update_progress(paths, statistics)
                 continue
-            statistics.add(ds.filename, PathStatuses.PROCESSED)
+            statistics.add(path, PathStatuses.PROCESSED)
             to_add = index.create_new_db_objects(ds, path)
             session.add_all(to_add)
-            session.commit()
+            try:
+                session.commit()
+            except StatementError as e:
+                raise DICOMIndexError(f"Error processing {path}") from e
             update_progress(paths, statistics)
 
     return statistics

@@ -45,6 +45,7 @@ class EagerIterator:
 
         self.value_queue = Queue()
         self.message_queue = Queue()
+        self.has_finished = False
 
     def _init_generator(self):
         self.process = Process(
@@ -53,13 +54,23 @@ class EagerIterator:
         )
         self.process.start()
         while self.value_queue.qsize() > 0 or not self.process_status.has_finished:
-            val = self.value_queue.get(timeout=1000)  # timeout as fallback
+            logger.debug(
+                f"Queue size is {self.value_queue.qsize()} and "
+                f"process finished is {self.process_status.has_finished}"
+            )
+            val = self.value_queue.get(timeout=3600)  # timeout as fallback
             self.update_process_status()
             yield val
 
+        print("cleaning up. Joining EagerIterator process..")
         self.process.join()  # clean up
 
     def update_process_status(self):
+        if self.has_finished:
+            return  # no updates needed, nothing will change
+        if self.process_status.has_finished:
+            self.has_finished = True
+
         while not self.message_queue.empty():
             try:
                 self.process_status = self.message_queue.get(block=False)
