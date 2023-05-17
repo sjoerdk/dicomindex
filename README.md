@@ -16,13 +16,23 @@ To recursively read DICOM files in `/path/to/folder` and add patient/study/serie
 
 Note: To This reads only a single dicom file in each series folder
 ```
-dicomindex index /tmp/myindex.sql /path/to/folder
+dicomindex index_full /tmp/myindex.sql /path/to/folder
 ```
 
 ### What's in my index file?
 ```
 dicomindex stats /path/to/folder
 ```
+
+### This is taking forever
+For big file collections over slow connections, indexing all files can easily take weeks. Annoying.
+You could use this to for a faster index:
+```
+dicomindex index_per_folder /tmp/myindex.sql /path/to/base_folder
+```
+This will find a single DICOM file to index in each folder. This speeds up indexing at the cost
+of completeness. Most of all it assumes that `base_folder` is structured in a patient/series/study way.
+
 
 ### Explore
 I want to look around at what's in my index file.
