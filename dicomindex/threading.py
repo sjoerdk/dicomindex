@@ -12,6 +12,7 @@ logger = get_module_logger("threading")
 
 
 EagerIteratorStatus = namedtuple("EagerIteratorStatus", ["visited", "has_finished"])
+ITERATOR_DEPLETED_SENTINEL = object()
 
 
 class EagerIterator:
@@ -53,17 +54,27 @@ class EagerIterator:
             args=(self.iterator, self.value_queue, self.message_queue),
         )
         self.process.start()
-        while self.value_queue.qsize() > 0 or not self.process_status.has_finished:
+
+        while self.more_values_to_expect():
             logger.debug(
                 f"Queue size is {self.value_queue.qsize()} and "
                 f"process finished is {self.process_status.has_finished}"
             )
-            val = self.value_queue.get(timeout=3600)  # timeout as fallback
-            self.update_process_status()
-            yield val
+            val = self.value_queue.get(timeout=60)  # timeout as fallback
 
-        print("cleaning up. Joining EagerIterator process..")
+            # Extra check in addition to more_values_to_expect() due to race
+            # condition between value_queue and message_queue
+            if val == ITERATOR_DEPLETED_SENTINEL:
+                continue  # Check again. Still not quite deadlock-proof. processes..
+            else:
+                yield val
+        logger.debug("Cleaning up. Joining iterator process")
         self.process.join()  # clean up
+
+    def more_values_to_expect(self):
+        """There will be more to get from value queue"""
+        self.update_process_status()
+        return self.value_queue.qsize() > 1 or not self.process_status.has_finished
 
     def update_process_status(self):
         if self.has_finished:
@@ -112,4 +123,5 @@ class EagerIterator:
             visited += 1
             value_queue.put(item)
             message_queue.put(EagerIteratorStatus(visited=visited, has_finished=False))
+        value_queue.put(ITERATOR_DEPLETED_SENTINEL)
         message_queue.put(EagerIteratorStatus(visited=visited, has_finished=True))

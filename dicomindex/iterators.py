@@ -12,7 +12,6 @@ logger = get_module_logger("iterators")
 
 
 class AllFiles:
-
     def __init__(self, path):
         """Walk through all files in path.
 
@@ -70,3 +69,12 @@ class AllDICOMDatasets:
                 yield read_dicom_file(x)
             except DICOMIndexError:
                 continue  # ignore error
+
+
+class Folder:
+    def __init__(self, base_path):
+        self.base_path = Path(base_path)
+
+    def folders(self):
+        """All folders recursively"""
+        return iter(x for x in self.base_path.rglob("*") if x.is_dir())

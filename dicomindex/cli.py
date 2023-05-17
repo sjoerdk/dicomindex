@@ -7,7 +7,7 @@ from tabulate import tabulate  # type: ignore
 from tqdm import tqdm
 
 from dicomindex.persistence import SQLiteSession
-from dicomindex.processing import index_folder
+from dicomindex.processing import index_folder_full, index_one_file_per_folder
 
 from dicomindex.logs import get_module_logger
 from dicomindex.orm import (
@@ -41,11 +41,11 @@ def main(verbose):
     configure_logging(verbose)
 
 
-@click.command(name="index")
+@click.command(name="index_full")
 @click.argument("index_file", type=ClickPath())
 @click.argument("base_folder", type=ClickPath(exists=True))
-def index_func(index_file, base_folder):
-    """Index all files in base folder"""
+def index_full_func(index_file, base_folder):
+    """Index all files in base folder. Slow but complete"""
     base_folder = Path(base_folder)
 
     logger.info(f"Starting index of '{base_folder}'. Writing to '{index_file}'")
@@ -58,7 +58,33 @@ def index_func(index_file, base_folder):
 
     with SQLiteSession(index_file) as session:
         with tqdm(total=1) as pbar:
-            stats = index_folder(base_folder, session, progress_bar=pbar)
+            stats = index_folder_full(base_folder, session, progress_bar=pbar)
+
+    logger.info("Finished")
+    logger.info(stats.summary())
+
+
+@click.command(name="index_per_folder")
+@click.argument("index_file", type=ClickPath())
+@click.argument("base_folder", type=ClickPath(exists=True))
+def index_per_folder_func(index_file, base_folder):
+    """Index one file in each folder. Fast indexing but assumes files for the same
+    patient/study/series are in one folder each. Might miss a lot of data is not
+    of that structure
+    """
+    base_folder = Path(base_folder)
+
+    logger.info(f"Starting index of '{base_folder}'. Writing to '{index_file}'")
+    if Path(index_file).exists():
+        click.confirm(
+            f'file "{index_file}" already exists. Do you want to '
+            f"append to this file?",
+            abort=True,
+        )
+
+    with SQLiteSession(index_file) as session:
+        with tqdm(total=1) as pbar:
+            stats = index_one_file_per_folder(base_folder, session, progress_bar=pbar)
 
     logger.info("Finished")
     logger.info(stats.summary())
@@ -84,5 +110,6 @@ def stats_func(index_file):
         print(tabulate(table, headers="keys", tablefmt="simple"))
 
 
-main.add_command(index_func)
+main.add_command(index_full_func)
+main.add_command(index_per_folder_func)
 main.add_command(stats_func)
