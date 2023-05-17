@@ -1,4 +1,4 @@
-"""Methods and classes for iterating over dicom files"""
+"""Methods and classes for iterating over (DICOM) files"""
 from pathlib import Path
 
 from pydicom.misc import is_dicom
@@ -12,12 +12,14 @@ logger = get_module_logger("iterators")
 
 
 class AllFiles:
-    """Walk through first-level folders first as this creates a better
-    progress indication for large folders
-    """
 
     def __init__(self, path):
-        """Path for each file in path recursively"""
+        """Walk through all files in path.
+
+        Iterate per first-level folders to create a better
+        progress indication (avoid returning thousands of second-level folders in
+        succession, to be ignored by f.is_file(), halting progress for a while).
+        """
         self.path = Path(path)
 
     def __iter__(self):

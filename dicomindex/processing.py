@@ -27,52 +27,61 @@ from dicomindex.threading import EagerIterator
 logger = get_module_logger("processing")
 
 
-def index_folder(base_folder, session, progress_bar: Optional[tqdm] = None):
-    """Iterate over all files in base folder, add them to session
+def process_path(path, session, index):
+    """Add this path to db and take care of all bookkeeping
 
-    progress bar is a tqdm progress bar object
+    Returns
+    -------
+    str
+        One of the values in PathStatuses
     """
+
+    path = str(path)
+    if path in index.paths:
+        return PathStatuses.SKIPPED_ALREADY_VISITED
+    try:
+        ds = read_dicom_file(path)
+    except NotDICOMError:
+        index.paths.add(Path(path))
+        session.add(NonDICOMFile(path=path))
+        session.commit()
+        return PathStatuses.SKIPPED_NON_DICOM
+
+    to_add = index.create_new_db_objects(ds, path, add_to_index=False)
+    session.add_all(to_add)
+    try:
+        session.commit()
+    except StatementError as e:
+        session.rollback()
+        # Skip error, continue
+        logger.exception(e)
+        logger.error(f"Error processing {path}. skipping")
+        return PathStatuses.SKIPPED_FAILED
+
+    index.add_to_index(ds)  # commit has succeeded. Now you can add
+    index.paths.add(str(path))
+    return PathStatuses.PROCESSED
+
+
+def update_progress(iter_in: EagerIterator, stats: Statistics,
+                    progress_bar: Optional[tqdm]):
+    """Updates both count and total length of given tqdm progress bar"""
+    if progress_bar:
+        progress_bar.total = len(iter_in)
+        progress_bar.update()
+        progress_bar.set_postfix_str(stats.summary())
+
+
+def index_folder(base_folder, session, progress_bar: Optional[tqdm] = None):
+    """Iterate over all files in base folder, add them to session"""
     index = DICOMIndex.init_from_session(session)
     statistics = Statistics()
     logger.debug(f"Found {len(index.paths)} instances already in index")
 
-    def update_progress(paths_in, stats):
-        if progress_bar:
-            progress_bar.total = len(paths_in)
-            progress_bar.update()
-            progress_bar.set_postfix_str(stats.summary())
-
     with EagerIterator(AllFiles(base_folder)) as paths:
         for path in paths:
-            path = str(path)
-            if path in index.paths:
-                statistics.add(path, PathStatuses.SKIPPED_ALREADY_VISITED)
-                update_progress(paths, statistics)
-                continue  # skip this
-            try:
-                ds = read_dicom_file(path)
-            except NotDICOMError:
-                statistics.add(path, PathStatuses.SKIPPED_NON_DICOM)
-                index.paths.add(Path(path))
-                session.add(NonDICOMFile(path=path))
-                session.commit()
-                update_progress(paths, statistics)
-                continue
-            statistics.add(path, PathStatuses.PROCESSED)
-            to_add = index.create_new_db_objects(ds, path)
-            session.add_all(to_add)
-            try:
-                session.commit()
-            except StatementError as e:
-                session.rollback()
-                # Skip error, continue
-                logger.exception(e)
-                logger.error(f"Error processing {path}. skipping")
-                statistics.add(path, PathStatuses.SKIPPED_FAILED)
-                update_progress(paths, statistics)
-                continue
-
-            update_progress(paths, statistics)
+            statistics.add(path, process_path(path, session, index))
+            update_progress(paths, statistics, progress_bar)
 
     return statistics
 
@@ -112,7 +121,7 @@ class DICOMIndex:
             | {path for path, in session.query(NonDICOMFile.path)},
         )
 
-    def create_new_db_objects(self, dataset: Dataset, path: str):
+    def create_new_db_objects(self, dataset: Dataset, path: str, add_to_index=True):
         """Create patient/study/series/instance objects from dataset, ignore existing
 
         Notes
@@ -124,10 +133,14 @@ class DICOMIndex:
 
         Parameters
         ----------
-        dataset:
+        dataset: Dataset
             Copy relevant fields from this dataset to db objects
-        path:
+        path: str
             Set Instance.path to this
+        add_to_index: Bool, optional
+            If True, automatically add ids and paths of any db objects to this index
+            Defaults to true.
+
 
         Returns
         -------
@@ -156,8 +169,9 @@ class DICOMIndex:
         if dataset.SeriesInstanceUID not in self.series_uids:
             db_objects.append(Series.init_from_dataset(dataset))
 
-        self.add_to_index(dataset)
-        self.paths.add(path)
+        if add_to_index:
+            self.add_to_index(dataset)
+            self.paths.add(path)
         logger.debug(f"Created {len(db_objects)} db objects for {path}")
         return db_objects
 
