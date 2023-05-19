@@ -138,4 +138,4 @@ def test_index_folder(example_dicom_folder, a_db_file):
 def test_index_one_file_per_folder(example_dicom_folder, a_mem_db_session, caplog):
     caplog.set_level(logging.DEBUG)
     stats = index_one_file_per_folder(example_dicom_folder, a_mem_db_session)
-    assert len(stats.status_list) == 7
+    assert len(stats.status_list) == 13
