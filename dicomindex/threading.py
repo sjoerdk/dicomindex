@@ -69,7 +69,8 @@ class EagerIterator:
             else:
                 yield val
         logger.debug("Cleaning up. Joining iterator process")
-        self.process.join()  # clean up
+
+        self.process.join(timeout=60)  # clean up
 
     def more_values_to_expect(self):
         """There will be more to get from value queue"""
