@@ -7,6 +7,7 @@ class PathStatuses:
     SKIPPED_ALREADY_VISITED = "SKIPPED_ALREADY_VISITED"
     SKIPPED_FAILED = "SKIPPED_FAILED"
     SKIPPED_NON_DICOM = "SKIPPED_NON_DICOM"
+    VISITED = "VISITED"
 
 
 PathStatus = namedtuple("PathStatus", ["path", "status"])

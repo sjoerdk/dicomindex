@@ -139,3 +139,17 @@ def test_index_one_file_per_folder(example_dicom_folder, a_mem_db_session, caplo
     caplog.set_level(logging.DEBUG)
     stats = index_one_file_per_folder(example_dicom_folder, a_mem_db_session)
     assert len(stats.status_list) == 13
+
+
+def test_index_one_file_per_folder_skip(example_dicom_folder, a_mem_db_session, caplog):
+    """When appending to existing index, skip entire folder if there is one correctly
+    processed file in that folder
+    """
+    caplog.set_level(logging.DEBUG)
+    stats = index_one_file_per_folder(example_dicom_folder, a_mem_db_session)
+    assert len(stats.status_list) == 13
+
+    # Index again, This should skip all folders as all were processed before
+    caplog.clear()
+    stats = index_one_file_per_folder(example_dicom_folder, a_mem_db_session)
+    assert len(stats.processed()) == 0

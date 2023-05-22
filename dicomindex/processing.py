@@ -2,7 +2,7 @@
 
 Ties together modules
 """
-from typing import Optional, Set
+from typing import Dict, Optional, Set
 
 from pydicom import Dataset
 from sqlalchemy.exc import StatementError
@@ -41,7 +41,7 @@ def process_path(path, session, index):
     try:
         ds = read_dicom_file(path)
     except NotDICOMError:
-        index.add_path(path)
+        index.set_path_status(path)
         session.add(NonDICOMFile(path=path))
         session.commit()
         return PathStatuses.SKIPPED_NON_DICOM
@@ -58,7 +58,7 @@ def process_path(path, session, index):
         return PathStatuses.SKIPPED_FAILED
 
     index.add_to_index(ds)  # commit has succeeded. Now you can add
-    index.add_path(path)
+    index.set_path_status(path, PathStatuses.PROCESSED)
     return PathStatuses.PROCESSED
 
 
@@ -109,20 +109,30 @@ def index_one_file_per_folder(
     with EagerIterator(Folder(base_folder).folders()) as folders:
         for folder in folders:
             logger.debug(f"Finding single file in {folder}")
-            found = False
-            for path in [x for x in folder.glob("./*") if x.is_file()]:
+            folder_processed = False
+            folder_skipped = False
+            for path in (x for x in folder.glob("./*") if x.is_file()):
+                if index.paths.get(str(path)) == PathStatuses.PROCESSED:
+                    logger.debug(
+                        f"Path {path} already processed. Skipping this " f"folder"
+                    )
+                    folder_skipped = True
+                    break
                 status = process_path(path, session, index)
                 if status == PathStatuses.PROCESSED:
                     # added one., We're done with this folder
                     statistics.add(path, status)
                     update_progress(folders, statistics, progress_bar)
-                    found = True
+                    folder_processed = True
                     break
                 else:
                     continue
-            if not found:
+            if not folder_processed:
                 logger.debug(f"Found no DICOM files in {folder}")
                 statistics.add(folder, PathStatuses.SKIPPED_NON_DICOM)
+                update_progress(folders, statistics, progress_bar)
+            elif folder_skipped:
+                statistics.add(path, PathStatuses.SKIPPED_NON_DICOM)
                 update_progress(folders, statistics, progress_bar)
 
     return statistics
@@ -142,7 +152,7 @@ class DICOMIndex:
         study_uids: Set[str],
         series_uids: Set[str],
         instance_uids: Set[str],
-        paths: Set[str],
+        paths: Dict[str, str],
     ):
         self.patient_ids = patient_ids
         self.study_uids = study_uids
@@ -153,14 +163,26 @@ class DICOMIndex:
     @classmethod
     def init_from_session(cls, session):
         """Populate indexes by reading ids from given session"""
+
         return cls(
             patient_ids={pid for pid, in session.query(Patient.PatientID)},
             study_uids={pid for pid, in session.query(Study.StudyInstanceUID)},
             series_uids={pid for pid, in session.query(Series.SeriesInstanceUID)},
             instance_uids={pid for pid, in session.query(Instance.SOPInstanceUID)},
-            paths={path for path, in session.query(Instance.path)}
-            | {path for path, in session.query(DICOMFileDuplicate.path)}
-            | {path for path, in session.query(NonDICOMFile.path)},
+            paths=dict(
+                **{
+                    str(path): PathStatuses.PROCESSED
+                    for path, in session.query(Instance.path)
+                },
+                **{
+                    str(path): PathStatuses.SKIPPED_FAILED
+                    for path, in session.query(DICOMFileDuplicate.path)
+                },
+                **{
+                    str(path): PathStatuses.SKIPPED_NON_DICOM
+                    for path, in session.query(NonDICOMFile.path)
+                },
+            ),
         )
 
     def create_new_db_objects(self, dataset: Dataset, path: str, add_to_index=True):
@@ -197,7 +219,7 @@ class DICOMIndex:
                 f"SOPInstanceUID in '{path}' already exists. This is a"
                 f" duplicate file. Storing in duplicate instances"
             )
-            self.add_path(path)
+            self.set_path_status(path)
             return [
                 DICOMFileDuplicate(path=path, SOPInstanceUID=dataset.SOPInstanceUID)
             ]
@@ -213,13 +235,13 @@ class DICOMIndex:
 
         if add_to_index:
             self.add_to_index(dataset)
-            self.add_path(path)
+            self.set_path_status(path)
         logger.debug(f"Created {len(db_objects)} db objects for {path}")
         return db_objects
 
-    def add_path(self, path):
+    def set_path_status(self, path, status: str = PathStatuses.VISITED):
         """Register the given path as visited"""
-        self.paths.add(str(path))
+        self.paths[str(path)] = status
 
     def add_to_index(self, dataset):
         """Add patient/study/series/instance ids to index"""
