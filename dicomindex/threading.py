@@ -109,7 +109,8 @@ class EagerIterator:
     def __exit__(self, exc_type, exc_val, exc_tb):
         logger.debug("Terminating path iterator process")
         if self.process.is_alive():
-            self.process.join()
+            logger.debug("Joining iterator process")
+            self.process.join(timeout=60)
 
     @staticmethod
     def push_iter_to_queue(iterator, value_queue, message_queue):
@@ -123,6 +124,11 @@ class EagerIterator:
         for item in iterator:
             visited += 1
             value_queue.put(item)
-            message_queue.put(EagerIteratorStatus(visited=visited, has_finished=False))
-        value_queue.put(ITERATOR_DEPLETED_SENTINEL)
-        message_queue.put(EagerIteratorStatus(visited=visited, has_finished=True))
+            message_queue.put(
+                EagerIteratorStatus(visited=visited, has_finished=False), timeout=60
+            )
+        value_queue.put(ITERATOR_DEPLETED_SENTINEL, timeout=60)
+        message_queue.put(
+            EagerIteratorStatus(visited=visited, has_finished=True), timeout=60
+        )
+        logger.debug("push_iter_to_queue finished")

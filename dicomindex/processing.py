@@ -117,6 +117,7 @@ def index_one_file_per_folder(
                         f"Path {path} already processed. Skipping this " f"folder"
                     )
                     folder_skipped = True
+                    folder_processed = True
                     break
                 status = process_path(path, session, index)
                 if status == PathStatuses.PROCESSED:
