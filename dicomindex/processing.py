@@ -98,9 +98,6 @@ def index_one_file_per_folder(
     been registered. Any non-dicom files or erroring files encountered during this
     search are registered in DB. This means a variable number of files per folder
     will be in db.
-    The method cannot distinguish between previously skipped and previously processed
-    files. Therefore, when running on the same folder a second time, a new file
-    will be indexed in addition to the one already there.
     """
     index = DICOMIndex.init_from_session(session)
     statistics = Statistics()
