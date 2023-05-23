@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from dicomgenerator.export import export
 from dicomgenerator.templates import CTDatasetFactory
@@ -153,3 +154,15 @@ def test_index_one_file_per_folder_skip(example_dicom_folder, a_mem_db_session, 
     caplog.clear()
     stats = index_one_file_per_folder(example_dicom_folder, a_mem_db_session)
     assert len(stats.processed()) == 0
+
+
+def test_index_folder_missing_tags(a_mem_db_session, tmp_path):
+    """DICOM Tags used in processing might not be there"""
+    dicom_dir = tmp_path / "dicom"
+    dicom_dir.mkdir(parents=True)
+    ds = CTDatasetFactory(PatientID="a_patient")
+    del ds["StudyInstanceUID"]
+    export(ds, path=(dicom_dir / str(uuid.uuid4())))
+
+    stats = index_folder_full(dicom_dir, a_mem_db_session)
+    assert len(stats.processed()) == 1

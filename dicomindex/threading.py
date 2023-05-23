@@ -12,7 +12,7 @@ logger = get_module_logger("threading")
 
 
 EagerIteratorStatus = namedtuple("EagerIteratorStatus", ["visited", "has_finished"])
-ITERATOR_DEPLETED_SENTINEL = object()
+Sentinel = namedtuple("Sentinel", ["text"])
 
 
 class EagerIterator:
@@ -58,24 +58,22 @@ class EagerIterator:
         while self.more_values_to_expect():
             logger.debug(
                 f"Queue size is {self.value_queue.qsize()} and "
-                f"process finished is {self.process_status.has_finished}"
+                f"process finished is {self.process_status.has_finished} and "
+                f"Message Queue size is {self.message_queue.qsize()} "
             )
-            val = self.value_queue.get(timeout=60)  # timeout as fallback
+            try:
+                yield self.value_queue.get(timeout=0.1)  # timeout as fallback
+            except Empty:
+                continue
 
-            # Extra check in addition to more_values_to_expect() due to race
-            # condition between value_queue and message_queue
-            if val == ITERATOR_DEPLETED_SENTINEL:
-                continue  # Check again. Still not quite deadlock-proof. processes..
-            else:
-                yield val
         logger.debug("Cleaning up. Joining iterator process")
 
-        self.process.join(timeout=60)  # clean up
+        self.process.join(timeout=1)  # clean up
 
     def more_values_to_expect(self):
         """There will be more to get from value queue"""
         self.update_process_status()
-        return self.value_queue.qsize() > 1 or not self.process_status.has_finished
+        return self.value_queue.qsize() > 0 or not self.process_status.has_finished
 
     def update_process_status(self):
         if self.has_finished:
@@ -127,7 +125,6 @@ class EagerIterator:
             message_queue.put(
                 EagerIteratorStatus(visited=visited, has_finished=False), timeout=60
             )
-        value_queue.put(ITERATOR_DEPLETED_SENTINEL, timeout=60)
         message_queue.put(
             EagerIteratorStatus(visited=visited, has_finished=True), timeout=60
         )

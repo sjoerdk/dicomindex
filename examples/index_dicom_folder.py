@@ -7,7 +7,7 @@ from os import environ
 
 from tqdm import tqdm
 
-from dicomindex.processing import index_folder_full
+from dicomindex.processing import index_one_file_per_folder
 from dicomindex.persistence import SQLiteSession
 
 index_file = "/tmp/archive.sql"
@@ -18,6 +18,6 @@ logging.basicConfig(level=logging.DEBUG)
 
 with SQLiteSession(index_file) as session:
     with tqdm(total=1) as pbar:
-        index_folder_full(
+        index_one_file_per_folder(
             base_folder=folder_to_index, session=session, progress_bar=pbar
         )
