@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dicomindex"
-version = "0.2.6"
+version = "0.2.7"
 description = "Index dicom files into patient->study->series->instance"
 authors = ["sjoerdk <sjoerd.kerkstra@radboudumc.nl>"]
 license = "MIT"
