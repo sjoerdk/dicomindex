@@ -165,4 +165,5 @@ def test_index_folder_missing_tags(a_mem_db_session, tmp_path):
     export(ds, path=(dicom_dir / str(uuid.uuid4())))
 
     stats = index_folder_full(dicom_dir, a_mem_db_session)
-    assert len(stats.processed()) == 1
+    assert len(stats.processed()) == 0
+    assert len(stats.skipped_failed()) == 1

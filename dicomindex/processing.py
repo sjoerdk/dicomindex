@@ -9,6 +9,7 @@ from sqlalchemy.exc import StatementError
 from tqdm import tqdm
 
 from dicomindex.core import read_dicom_file
+from dicomindex.dataset import RequiredDataset, RequiredTagNotFound
 from dicomindex.exceptions import NotDICOMError
 from dicomindex.iterators import AllFiles, Folder
 from dicomindex.logs import get_module_logger
@@ -41,12 +42,22 @@ def process_path(path, session, index):
     try:
         ds = read_dicom_file(path)
     except NotDICOMError:
-        index.set_path_status(path)
+        index.set_path_status(path, status=PathStatuses.SKIPPED_NON_DICOM)
         session.add(NonDICOMFile(path=path))
         session.commit()
         return PathStatuses.SKIPPED_NON_DICOM
 
-    to_add = index.create_new_db_objects(ds, path, add_to_index=False)
+    try:
+        to_add = index.create_new_db_objects(
+            RequiredDataset(ds), path, add_to_index=False
+        )
+    except RequiredTagNotFound as e:
+        # a basic tag like PatientID is missing from this file. Don't process.
+        logger.exception(e)
+        logger.error(f"DICOM file at {path} was missing essential tags. skipping")
+        index.set_path_status(path, PathStatuses.SKIPPED_FAILED)
+        return PathStatuses.SKIPPED_FAILED
+
     session.add_all(to_add)
     try:
         session.commit()
