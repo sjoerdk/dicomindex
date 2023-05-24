@@ -10,9 +10,8 @@
 Reads DICOM files and indexes those in a single sqlite file. Helps answer the question 'what is in this huge folder full of dicom files?'
 
 ## Installation
-Latest version from git:
 ```
-pip install git+https://github.com/sjoerdk/dicomindex@main
+pip install dicomindex
 ```
 
 ## Usage
