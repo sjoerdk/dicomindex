@@ -1,5 +1,8 @@
 # History
 
+## 0.2.8 (2023-05-10)
+* Updated readme
+
 ## 0.2.7 (2023-05-10)
 * First pypi version. Basic indexing functions completed and tested
 
