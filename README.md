@@ -1,7 +1,7 @@
 # dicom index
 
 
-[![CI](https://github.com/sjoerdk/dicomindex/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/sjoerdk/dicomindex/actions/workflows/build.yml?query=branch%3Amaster)
+[![CI](https://github.com/sjoerdk/dicomindex/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/sjoerdk/dicomindex/actions/workflows/build.yml?query=branch%3Amain)
 [![PyPI](https://img.shields.io/pypi/v/dicomindex)](https://pypi.org/project/dicomindex/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dicomindex)](https://pypi.org/project/dicomindex/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
