@@ -5,6 +5,7 @@ description = "Index dicom files into sqlite database"
 authors = [{ name = "sjoerdk", email = "sjoerd.kerkstra@radboudumc.nl" }]
 requires-python = ">=3.10,<4"
 license = "MIT"
+readme = "README.md"
 classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
