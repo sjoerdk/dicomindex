@@ -1,5 +1,12 @@
 # History
 
+## 0.3.0 (2026-01-26)
+* Dusts off package
+* Drops poetry, moves to uv for package management
+* Updates github actions, updates black, flake8, mypy versions and config
+* Updates dependencies, moves to pydicom
+* Drops python 3.9. Minimal is now 3.10 
+
 ## 0.2.8 (2023-05-10)
 * Updated readme
 
