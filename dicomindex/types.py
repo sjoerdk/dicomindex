@@ -5,6 +5,7 @@ Mainly just 'flatten complex pydicom data type to string' currently
 """
 
 from datetime import datetime
+
 import sqlalchemy.types as types
 
 

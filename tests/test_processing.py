@@ -5,14 +5,14 @@ from dicomgenerator.export import export
 from dicomgenerator.templates import CTDatasetFactory
 
 from dicomindex.core import read_dicom_file
+from dicomindex.iterators import AllDICOMFiles, AllFiles
+from dicomindex.orm import Instance, Patient
 from dicomindex.persistence import SQLiteSession
 from dicomindex.processing import (
     DICOMIndex,
     index_folder_full,
     index_one_file_per_folder,
 )
-from dicomindex.iterators import AllDICOMFiles, AllFiles
-from dicomindex.orm import Instance, Patient
 from tests.conftest import generate_full_stack_patient
 
 

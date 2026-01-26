@@ -1,5 +1,6 @@
-from dicomindex.cli import main
 from click.testing import CliRunner
+
+from dicomindex.cli import main
 
 
 def test_cli_base():

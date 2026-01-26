@@ -6,8 +6,6 @@ from click import Path as ClickPath
 from tabulate import tabulate  # type: ignore
 from tqdm import tqdm
 
-from dicomindex.persistence import SQLiteSession
-from dicomindex.processing import index_folder_full, index_one_file_per_folder
 
 from dicomindex.logs import get_module_logger
 from dicomindex.orm import (
@@ -18,6 +16,8 @@ from dicomindex.orm import (
     Series,
     Study,
 )
+from dicomindex.persistence import SQLiteSession
+from dicomindex.processing import index_folder_full, index_one_file_per_folder
 
 logger = get_module_logger("cli")
 

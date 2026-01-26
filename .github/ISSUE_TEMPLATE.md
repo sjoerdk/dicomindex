@@ -1,4 +1,4 @@
-* dicomtrolley version:
+* dicomindex version:
 * Python version:
 * Operating System:
 

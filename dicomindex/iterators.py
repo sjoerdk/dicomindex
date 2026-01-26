@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from pydicom.misc import is_dicom
+
 from dicomindex.core import (
     read_dicom_file,
 )

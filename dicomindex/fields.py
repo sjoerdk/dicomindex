@@ -139,7 +139,6 @@ class StudyLevel:
         "InstitutionalDepartmentName",
         "NumberOfStudyRelatedSeries",
         "NumberOfStudyRelatedInstances",
-        "InstanceAvailability",
         "SOPClassesInStudy",
         "CurrentPatientLocation",
         "SourceApplicationEntityTitle",

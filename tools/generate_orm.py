@@ -17,9 +17,9 @@ from dicomgenerator.dicom import VRs
 from jinja2 import Template
 from pydicom.datadict import dictionary_VM, dictionary_VR
 from pydicom.tag import Tag
+from tools import TEMPLATE_PATH
 
 from dicomindex.fields import InstanceLevel, SeriesLevel, StudyLevel
-from tools import TEMPLATE_PATH
 
 
 def tag_to_vr(tag_name):
@@ -69,29 +69,29 @@ def tag_to_sqlalchemy(tag_name: str):  # noqa: C901  (Too complex. But DICOM..)
     if vr == VRs.ApplicationEntity:
         return (
             f"{tag_name}: Mapped[Optional[str]] = "
-            f"mapped_column({get_string_field(16,vm)})"
+            f"mapped_column({get_string_field(16, vm)})"
         )
     elif vr == VRs.AgeString:
         return (
             f"{tag_name}: Mapped[Optional[str]] = "
-            f"mapped_column({get_string_field(4,vm)})"
+            f"mapped_column({get_string_field(4, vm)})"
         )
     elif vr == VRs.AttributeTag:
         return (
             f"{tag_name}: Mapped[Optional[str]] = "
-            f"mapped_column({get_string_field(4,vm)})"
+            f"mapped_column({get_string_field(4, vm)})"
         )
     elif vr == VRs.CodeString:
         return (
             f"{tag_name}: Mapped[Optional[str]] = "
-            f"mapped_column({get_string_field(16,vm)})"
+            f"mapped_column({get_string_field(16, vm)})"
         )
     elif vr == VRs.Date:
         return f"{tag_name}: Mapped[Optional[str]] = mapped_column(DICOMDate())"
     elif vr == VRs.DecimalString:
         return (
             f"{tag_name}: Mapped[Optional[str]] = "
-            f"mapped_column({get_string_field(32,vm)})"
+            f"mapped_column({get_string_field(32, vm)})"
         )
     elif vr == VRs.DateTime:
         return f"{tag_name}: Mapped[Optional[str]] = mapped_column(DICOMDateTime())"
@@ -107,7 +107,7 @@ def tag_to_sqlalchemy(tag_name: str):  # noqa: C901  (Too complex. But DICOM..)
     elif vr == VRs.LongString:
         return (
             f"{tag_name}: Mapped[Optional[str]] = "
-            f"mapped_column({get_string_field(64,vm)})"
+            f"mapped_column({get_string_field(64, vm)})"
         )
     elif vr == VRs.LongText:
         return f"{tag_name}: Mapped[Optional[str]] = mapped_column(String(10240))"
@@ -124,7 +124,7 @@ def tag_to_sqlalchemy(tag_name: str):  # noqa: C901  (Too complex. But DICOM..)
     elif vr == VRs.ShortString:
         return (
             f"{tag_name}: Mapped[Optional[str]] = "
-            f"mapped_column({get_string_field(16,vm)})"
+            f"mapped_column({get_string_field(16, vm)})"
         )
     elif vr == VRs.SignedLong:
         return f"{tag_name}: Mapped[Optional[float]] = mapped_column(Float(8))"

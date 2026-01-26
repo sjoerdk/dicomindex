@@ -7,8 +7,8 @@ from os import environ
 
 from tqdm import tqdm
 
-from dicomindex.processing import index_one_file_per_folder
 from dicomindex.persistence import SQLiteSession
+from dicomindex.processing import index_one_file_per_folder
 
 index_file = "/tmp/archive.sql"
 folder_to_index = environ["FOLDER"]
