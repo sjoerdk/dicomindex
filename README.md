@@ -58,7 +58,7 @@ with SQLiteSession("/tmp/archive.sql") as session:
 
 ## Non-goals
 dicomindex will not do the following:
-* Comprehensive storage. Use a PACS like [orthanc](https://www.orthanc-server.com)
+* Comprehensive storage. Use a PACS like [orthanc](https://www.orthanc-server.com). If an `ImageComments` element contains many pages of data, dicomindex will only save the first 1024 characters. It maps many different DICOM Value Representations  to 'flat string'. It is meant for indexing, not faithful reproduction.
 * Exploration and browsing tools. Use [datasette](https://datasette.io/) 
 
 ## Useful for 

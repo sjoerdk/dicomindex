@@ -61,6 +61,8 @@ def tag_to_sqlalchemy(tag_name: str):  # noqa: C901  (Too complex. But DICOM..)
             return f"DICOMFlattenedString({length})"
         elif vm == "1-n":
             return f"DICOMMultipleString({length})"
+        elif vm == "2-n":
+            return f"DICOMMultipleString({length})"
         elif int(vm) > 1:
             return f"DICOMMultipleString({length})"
         else:

@@ -158,6 +158,11 @@ class Instance(Base):
     path: Mapped[str] = mapped_column(String(512))
 
     # === DICOM fields ===
+    # Note: fields below are generated using tools/generate_orm.py
+    # This makes some pragmatic assumptions, like cutting potentially very long elements
+    # like ImageComments down to 1024-length strings. This DB is meant to save
+    # an overview of dicomdata for search and datamining. It is not meant
+    #
     ContentTime: Mapped[Optional[str]] = mapped_column(DICOMTime())
     StationName: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(16))
     DateOfLastCalibration: Mapped[Optional[str]] = mapped_column(DICOMDate())
@@ -186,6 +191,12 @@ class Instance(Base):
     PresentationCreationTime: Mapped[Optional[str]] = mapped_column(DICOMTime())
     PixelPaddingValue: Mapped[Optional[float]] = mapped_column(Float(4))
     ConceptNameCodeSequence: Mapped[Optional[str]] = mapped_column(DICOMSequence(265))
+    BurnedInAnnotation: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(16))
+    CodeMeaning: Mapped[Optional[str]] = mapped_column(DICOMFlattenedString(64))
+    CommentsOnRadiationDose: Mapped[Optional[str]] = mapped_column(String(1024))
+    ConvolutionKernel: Mapped[Optional[str]] = mapped_column(DICOMMultipleString(16))
+    ImageComments: Mapped[Optional[str]] = mapped_column(String(1024))
+    ImageType: Mapped[Optional[str]] = mapped_column(DICOMMultipleString(16))
 
     @classmethod
     def init_from_dataset(cls, dataset: Dataset, path: str):
