@@ -5,4 +5,6 @@ from click.testing import CliRunner
 def test_cli_base():
     """Just invoking root cli command should not crash"""
     runner = CliRunner()
-    assert runner.invoke(main).exit_code == 0
+    response = runner.invoke(main)
+    assert "Usage:" in response.output
+    assert response.exit_code == 2  # expected response for incomplete command

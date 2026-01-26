@@ -1,29 +1,41 @@
-[tool.poetry]
+[project]
 name = "dicomindex"
 version = "0.2.8"
 description = "Index dicom files into sqlite database"
-authors = ["sjoerdk <sjoerd.kerkstra@radboudumc.nl>"]
+authors = [{ name = "sjoerdk", email = "sjoerd.kerkstra@radboudumc.nl" }]
+requires-python = ">=3.9,<4"
 license = "MIT"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "dicomgenerator>=0.9.0",
+    "pydicom>=2.4.4",
+    "sqlalchemy>=2.0.46",
+    "tabulate>=0.9.0",
+    "tqdm>=4.67.1",
+]
 
-[tool.poetry.dependencies]
-python = "^3.9"
-pydicom = "^2.3.1"
-SQLAlchemy = "^2.0.10"
-click = "^8.1.3"
-tabulate = "^0.9.0"
-tqdm = "^4.65.0"
-
-[tool.poetry.dev-dependencies]
-pytest = "^7.3.1"
-dicomgenerator = "^0.8.1"
-factory-boy = "^3.2.1"
-Jinja2 = "^3.1.2"
-types-tabulate = "^0.9.0"
-python-stopwatch = "^1.0.5"
-
-[tool.poetry.scripts]
+[project.scripts]
 dicomindex = "dicomindex.cli:main"
 
+[dependency-groups]
+dev = [
+    "coverage>=7.10.7",
+    "factory-boy>=3.3.3",
+    "pytest>=8.4.2",
+]
+
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.9.0,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "dicomindex"
+module-root = ""
