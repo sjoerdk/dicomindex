@@ -1,13 +1,11 @@
 [project]
 name = "dicomindex"
-version = "0.2.8"
+version = "0.3.0"
 description = "Index dicom files into sqlite database"
 authors = [{ name = "sjoerdk", email = "sjoerd.kerkstra@radboudumc.nl" }]
-requires-python = ">=3.9,<4"
+requires-python = ">=3.10,<4"
 license = "MIT"
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
