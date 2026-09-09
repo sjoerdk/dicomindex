@@ -21,9 +21,7 @@ def test_index_dicom_dir(example_dicom_folder, a_db_file):
     with SQLiteSession(a_db_file) as session:
         index = DICOMIndex.init_from_session(session)
         for file in AllDICOMFiles(example_dicom_folder):
-            session.add_all(
-                index.create_new_db_objects(read_dicom_file(file), str(file))
-            )
+            session.add_all(index.add_file_dataset(read_dicom_file(file), str(file)))
             session.commit()
 
         patients = session.query(Patient).all()
@@ -42,9 +40,7 @@ def test_index_dirty_dicom_dir(example_dicom_folder, a_db_file):
     with SQLiteSession(a_db_file) as session:
         index = DICOMIndex.init_from_session(session)
         for file in AllDICOMFiles(example_dicom_folder):
-            session.add_all(
-                index.create_new_db_objects(read_dicom_file(file), str(file))
-            )
+            session.add_all(index.add_file_dataset(read_dicom_file(file), str(file)))
             session.commit()
 
 
@@ -72,13 +68,11 @@ def test_folder_iterator_skip_existing_instances(example_dicom_folder, a_db_file
     files = [x for x in AllDICOMFiles(example_dicom_folder)]
     assert len(files) == 14
 
-    # now add 5 of those files to db using create_new_db_objects
+    # now add 5 of those files to db using add_file_dataset
     with SQLiteSession(a_db_file) as session:
         index = DICOMIndex.init_from_session(session)
         for file in files[0:5]:
-            session.add_all(
-                index.create_new_db_objects(read_dicom_file(file), str(file))
-            )
+            session.add_all(index.add_file_dataset(read_dicom_file(file), str(file)))
         session.commit()
 
     # run again on all files in folder
@@ -102,9 +96,7 @@ def test_index_duplicate_files(tmp_path, a_mem_db_session):
 
     index = DICOMIndex.init_from_session(a_mem_db_session)
     for file in tmp_path.glob("*"):
-        a_mem_db_session.add_all(
-            index.create_new_db_objects(read_dicom_file(file), file)
-        )
+        a_mem_db_session.add_all(index.add_file_dataset(read_dicom_file(file), file))
         a_mem_db_session.commit()
 
     assert len(index.paths) == 3
@@ -112,6 +104,16 @@ def test_index_duplicate_files(tmp_path, a_mem_db_session):
 
     new_index = DICOMIndex.init_from_session(a_mem_db_session)
     assert len(new_index.paths) == 3
+
+
+def test_index_study_only(a_mem_db_session):
+    """Make sure you can add datasets that do not contain instance information"""
+    from dicomgenerator.generators import quick_dataset
+
+    study = quick_dataset(PatientID="Patient1", StudyInstanceUID="1234")
+
+    index = DICOMIndex.init_from_session(a_mem_db_session)
+    index.add_file_dataset(study, path="testpath")
 
 
 def test_index_folder(example_dicom_folder, a_db_file):
