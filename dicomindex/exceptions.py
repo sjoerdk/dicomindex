@@ -4,3 +4,7 @@ class DICOMIndexError(Exception):
 
 class NotDICOMError(DICOMIndexError):
     pass
+
+
+class NoObjectIDFoundError(DICOMIndexError):
+    pass

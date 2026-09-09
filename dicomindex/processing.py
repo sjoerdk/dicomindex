@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from dicomindex.core import read_dicom_file
 from dicomindex.dataset import RequiredDataset, RequiredTagNotFound
-from dicomindex.exceptions import NotDICOMError
+from dicomindex.exceptions import NoObjectIDFoundError, NotDICOMError
 from dicomindex.iterators import AllFiles, Folder
 from dicomindex.logs import get_module_logger
 from dicomindex.orm import (
@@ -25,6 +25,23 @@ from dicomindex.statistics import PathStatuses, Statistics
 from dicomindex.threading import EagerIterator
 
 logger = get_module_logger("processing")
+
+
+def process_dataset(ds, session, index):
+    """Add information from dataset. Add Patient,Study,Series,Instance objects if
+    possible
+    """
+    to_add = index.add_dataset(ds, add_to_index=False)
+    session.add_all(to_add)
+    try:
+        session.commit()
+    except StatementError as e:
+        session.rollback()
+        # Skip error, continue
+        logger.exception(e)
+    else:
+        # commit has succeeded. Now you can add
+        index.add_to_index(ds)
 
 
 def process_path(path, session, index):
@@ -48,10 +65,8 @@ def process_path(path, session, index):
         return PathStatuses.SKIPPED_NON_DICOM
 
     try:
-        to_add = index.create_new_db_objects(
-            RequiredDataset(ds), path, add_to_index=False
-        )
-    except RequiredTagNotFound as e:
+        to_add = index.add_file_dataset(RequiredDataset(ds), path, add_to_index=False)
+    except (RequiredTagNotFound, NoObjectIDFoundError) as e:
         # a basic tag like PatientID is missing from this file. Don't process.
         logger.exception(e)
         logger.error(f"DICOM file at {path} was missing essential tags. skipping")
@@ -153,6 +168,12 @@ class DICOMIndex:
     A single DICOM Patient can be referenced in hundreds of DICOM instances. A
     Patient object will only have to be added to database once. Instead of
     checking the database hundreds of times for patients, keep track here.
+
+    Design
+    ------
+    DICOMIndex does not use or maintain any database connection. It is an index of
+    what has been added to avoid duplicate calls.
+
     """
 
     def __init__(
@@ -194,8 +215,12 @@ class DICOMIndex:
             ),
         )
 
-    def create_new_db_objects(self, dataset: Dataset, path: str, add_to_index=True):
-        """Create patient/study/series/instance objects from dataset, ignore existing
+    def add_file_dataset(self, dataset: Dataset, path: str, add_to_index=True):
+        """Add the information from a file-based DICOM dataset to index
+
+        Add original path and patient/study/series/instance objects if possible,
+        skips existing based on DICOM object UIDs. Duplicate SOPinstanceUIDs are
+        registered as duplicates.
 
         Notes
         -----
@@ -211,7 +236,8 @@ class DICOMIndex:
         path: str
             Set Instance.path to this
         add_to_index: Bool, optional
-            If True, automatically add ids and paths of any db objects to this index
+            If True, automatically add ids and paths of any db objects to this index.
+            If False, just return the objects that would have been added.
             Defaults to true.
 
 
@@ -248,13 +274,66 @@ class DICOMIndex:
         logger.debug(f"Created {len(db_objects)} db objects for {path}")
         return db_objects
 
+    def add_dataset(self, dataset: Dataset, add_to_index=True):  # noqa: C901
+        """Add the information from any DICOM dataset to index. Auto-detect
+        whether this contains Instance, Series or Study information.
+
+        Parameters
+        ----------
+        dataset: Dataset
+            Copy relevant fields from this dataset to db objects
+        add_to_index: Bool, optional
+            If True, automatically add ids and paths of any db objects to this index.
+            If False, just return the objects that would have been added.
+            Defaults to true.
+
+
+        Returns
+        -------
+        List[Base]
+            Patient/Study/Series/Instance objects for ids that have not been
+
+        """
+
+        db_objects = []
+
+        if dataset.get("PatientID") not in self.patient_ids:
+            try:
+                db_objects.append(Patient.init_from_dataset(dataset))
+            except NoObjectIDFoundError:
+                pass
+        if dataset.get("StudyInstanceUID") not in self.study_uids:
+            try:
+                db_objects.append(Study.init_from_dataset(dataset))
+            except NoObjectIDFoundError:
+                pass
+        if dataset.get("SeriesInstanceUID") not in self.series_uids:
+            try:
+                db_objects.append(Series.init_from_dataset(dataset))
+            except NoObjectIDFoundError:
+                pass
+        if dataset.get("SOPInstanceUID") not in self.instance_uids:
+            try:
+                db_objects.append(Instance.init_from_dataset(dataset, path="None"))
+            except NoObjectIDFoundError:
+                pass
+
+        if add_to_index:
+            self.add_to_index(dataset)
+        logger.debug(f"Created {len(db_objects)} db objects")
+        return db_objects
+
     def set_path_status(self, path, status: str = PathStatuses.VISITED):
         """Register the given path as visited"""
         self.paths[str(path)] = status
 
     def add_to_index(self, dataset):
         """Add patient/study/series/instance ids to index"""
-        self.patient_ids.add(dataset.PatientID)
-        self.study_uids.add(dataset.StudyInstanceUID)
-        self.series_uids.add(dataset.SeriesInstanceUID)
-        self.instance_uids.add(dataset.SOPInstanceUID)
+        if "PatientID" in dataset:
+            self.patient_ids.add(dataset.PatientID)
+        if "StudyInstanceUID" in dataset:
+            self.study_uids.add(dataset.StudyInstanceUID)
+        if "SeriesInstanceUID" in dataset:
+            self.series_uids.add(dataset.SeriesInstanceUID)
+        if "SOPInstanceUID" in dataset:
+            self.instance_uids.add(dataset.SOPInstanceUID)

@@ -12,6 +12,7 @@ from dicomindex.processing import (
     DICOMIndex,
     index_folder_full,
     index_one_file_per_folder,
+    process_dataset,
 )
 from tests.conftest import generate_full_stack_patient
 
@@ -113,7 +114,18 @@ def test_index_study_only(a_mem_db_session):
     study = quick_dataset(PatientID="Patient1", StudyInstanceUID="1234")
 
     index = DICOMIndex.init_from_session(a_mem_db_session)
-    index.add_file_dataset(study, path="testpath")
+    process_dataset(study, a_mem_db_session, index)
+
+    assert index.patient_ids == {"Patient1"}
+    assert index.study_uids == {"1234"}
+
+    # you should be able to add again. Nothing will happen
+    process_dataset(study, a_mem_db_session, index)
+
+    # database should have been updated
+    new_index = DICOMIndex.init_from_session(a_mem_db_session)
+    assert new_index.patient_ids == {"Patient1"}
+    assert new_index.study_uids == {"1234"}
 
 
 def test_index_folder(example_dicom_folder, a_db_file):

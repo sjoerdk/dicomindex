@@ -4,6 +4,7 @@ from pydicom import Dataset
 from sqlalchemy import Float, ForeignKey, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from dicomindex.exceptions import NoObjectIDFoundError
 from dicomindex.fields import InstanceLevel, SeriesLevel, StudyLevel
 from dicomindex.types import (
     DICOMDate,
@@ -32,6 +33,10 @@ class Patient(Base):
     @classmethod
     def init_from_dataset(cls, dataset: Dataset):
         """Try to fill all fields of this model with info from dataset"""
+        if "PatientID" not in dataset:
+            raise NoObjectIDFoundError(
+                "PatientID not found in dataset. I Cannot create a Patient object without this."
+            )
         return cls(PatientID=dataset.PatientID)
 
 
@@ -97,6 +102,11 @@ class Study(Base):
     @classmethod
     def init_from_dataset(cls, dataset: Dataset):
         """Try to fill all fields of this model with info from dataset"""
+        if "StudyInstanceUID" not in dataset:
+            raise NoObjectIDFoundError(
+                "StudyInstanceUID not found in dataset. I "
+                "Cannot create a Study object without this."
+            )
         fields_to_transfer = StudyLevel.fields.union({"PatientID"})
         return cls(**{tag: dataset.get(tag) for tag in fields_to_transfer})
 
@@ -144,6 +154,16 @@ class Series(Base):
     @classmethod
     def init_from_dataset(cls, dataset: Dataset):
         """Try to fill all fields of this model with info from dataset"""
+        if "StudyInstanceUID" not in dataset:
+            raise NoObjectIDFoundError(
+                "StudyInstanceUID not found in dataset. I "
+                "Cannot create a Study object without this."
+            )
+        if "SeriesInstanceUID" not in dataset:
+            raise NoObjectIDFoundError(
+                "SeriesInstanceUID not found in dataset. I "
+                "Cannot create a Series object without this."
+            )
         fields_to_transfer = SeriesLevel.fields.union({"StudyInstanceUID"})
         return cls(**{tag: dataset.get(tag) for tag in fields_to_transfer})
 
@@ -201,6 +221,21 @@ class Instance(Base):
     @classmethod
     def init_from_dataset(cls, dataset: Dataset, path: str):
         """Try to fill all fields of this model with info from dataset"""
+        if "StudyInstanceUID" not in dataset:
+            raise NoObjectIDFoundError(
+                "StudyInstanceUID not found in dataset. I "
+                "Cannot create a Study object without this."
+            )
+        if "SeriesInstanceUID" not in dataset:
+            raise NoObjectIDFoundError(
+                "SeriesInstanceUID not found in dataset. I "
+                "Cannot create a Series object without this."
+            )
+        if "SOPInstanceUID" not in dataset:
+            raise NoObjectIDFoundError(
+                "SOPInstanceUID not found in dataset. I "
+                "Cannot create an Instance object without this."
+            )
         fields_to_transfer = InstanceLevel.fields.union({"SeriesInstanceUID"})
         param_dict = {tag: dataset.get(tag) for tag in fields_to_transfer}
         param_dict["path"] = path
