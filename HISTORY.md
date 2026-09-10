@@ -1,4 +1,6 @@
 # History
+## 0.3.1 (2026-09-10)
+* Adds processing.process_dataset() method for adding non-file datasets to index. Fixes: #3
 
 ## 0.3.0 (2026-01-26)
 * Dusts off package
